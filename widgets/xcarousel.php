@@ -751,6 +751,7 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
         <style>
         .xcarousel-wrapper {
             position: relative;
+            overflow:hidden;
         }
         .xcarousel-slide {
             position: relative;
