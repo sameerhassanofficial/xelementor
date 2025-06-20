@@ -36,17 +36,19 @@ function xcarousel_enqueue_scripts() {
         $load_scripts = true;
     }
 
-    if ($load_scripts) {
-        wp_enqueue_style('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css', [], '8.4.5');
-        wp_enqueue_script('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js', ['jquery'], '8.4.5', true);
-    }
+    // Swiper JS and CSS will be loaded by Elementor as a dependency of the XCarousel widget.
+    // if ($load_scripts) {
+        // wp_enqueue_style('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css', [], '8.4.5');
+        // wp_enqueue_script('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js', ['jquery'], '8.4.5', true);
+    // }
 }
 add_action('wp_enqueue_scripts', 'xcarousel_enqueue_scripts');
 
 // Enqueue scripts for Elementor editor
 function xcarousel_editor_scripts() {
-    wp_enqueue_style('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css', [], '8.4.5');
-    wp_enqueue_script('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js', ['jquery'], '8.4.5', true);
+    // Swiper JS and CSS will be loaded by Elementor as a dependency of the XCarousel widget.
+    // wp_enqueue_style('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css', [], '8.4.5');
+    // wp_enqueue_script('swiper', 'https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js', ['jquery'], '8.4.5', true);
 }
 add_action('elementor/editor/after_enqueue_styles', 'xcarousel_editor_scripts');
 ?>

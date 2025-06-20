@@ -744,7 +744,11 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                     break;
             }
 
-            var swiper = new Swiper('.elementor-element-<?php echo $this->get_id(); ?> .<?php echo $swiper_class; ?>', swiperConfig);
+            var $carousel = jQuery('.elementor-element-<?php echo $this->get_id(); ?> .<?php echo $swiper_class; ?>');
+            if (!$carousel.length || typeof Swiper === 'undefined') {
+                return;
+            }
+            var swiper = new Swiper($carousel[0], swiperConfig);
         });
         </script>
 
