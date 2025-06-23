@@ -42,6 +42,14 @@ function register_custom_elementor_widgets($widgets_manager) {
             $widgets_manager->register(new \XCarousel_Widget());
         }
     }
+
+    // Register the XForm Widget
+    if (file_exists(get_stylesheet_directory() . '/widgets/xform.php')) {
+        require_once get_stylesheet_directory() . '/widgets/xform.php';
+        if (class_exists('XForm_Widget')) {
+            $widgets_manager->register(new \XForm_Widget());
+        }
+    }
 }
 add_action('elementor/widgets/register', 'register_custom_elementor_widgets');
 

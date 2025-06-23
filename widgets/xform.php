@@ -557,11 +557,14 @@ class XForm_Widget extends \Elementor\Widget_Base {
      */
     private function render_field($field_settings, $form_id) {
         $field_id_base = $form_id . '-' . $field_settings['_id'];
-        // Use a more specific name structure for POST data to easily identify XForm fields
-        $field_name = 'xform_fields[' . esc_attr($field_settings['_id']) . ']';
+        $label_text = esc_html($field_settings['field_label']);
+
+        // Create a sanitized key from the label for the field name, or fallback to _id
+        $field_name_key = !empty($field_settings['field_label']) ? sanitize_title($field_settings['field_label']) : $field_settings['_id'];
+        $field_name = 'xform_fields[' . esc_attr($field_name_key) . ']';
+
         $required_attr = ($field_settings['field_required'] === 'yes') ? 'required' : '';
         $placeholder_attr = esc_attr($field_settings['field_placeholder']);
-        $label_text = esc_html($field_settings['field_label']);
 
         $field_classes = ['xform-field-wrap'];
         if (!empty($field_settings['field_type'])) {
@@ -679,65 +682,60 @@ function xform_handle_submission_action() {
     // So, we will use the field key as a pseudo-label.
 
     if (empty($submitted_fields)) {
-         $errors[] = esc_html__('No data submitted.', 'xform-widget');
+        $errors[] = esc_html__('No data submitted.', 'xform-widget');
     }
 
-    foreach ($submitted_fields as $field_key => $value) {
+    $reply_to_email = null;
+
+    foreach ($submitted_fields as $field_name_key => $value) {
+        // Reconstruct label from sanitized key: replace hyphens with spaces, capitalize words
+        $label = ucwords(str_replace('-', ' ', $field_name_key));
+
         $sanitized_value = '';
-        // Basic sanitization. For specific field types, more specific sanitization would be needed.
         if (is_array($value)) {
-            $sanitized_value = array_map('sanitize_text_field', $value); // Or wp_kses_post for textarea if HTML is allowed
-            $form_data_for_email[esc_html__('Field', 'xform-widget') . ' ' . sanitize_key($field_key)] = implode(', ', $sanitized_value);
+            $sanitized_value = array_map('sanitize_text_field', $value);
+            $form_data_for_email[$label] = implode(', ', $sanitized_value);
         } else {
-            $sanitized_value = sanitize_text_field(stripslashes($value)); // Or wp_kses_post for textarea
-            $form_data_for_email[esc_html__('Field', 'xform-widget') . ' ' . sanitize_key($field_key)] = $sanitized_value;
+            // Basic check if this might be an email field based on common label names
+            if (!$reply_to_email && (strpos(strtolower($label), 'email') !== false || strpos(strtolower($label), 'e-mail') !== false) && is_email($value)) {
+                $reply_to_email = sanitize_email($value);
+            }
+            // Use wp_kses_post for textareas to allow some HTML, sanitize_text_field for others.
+            // For simplicity in Stage 1, we'll use sanitize_text_field for all, but this could be refined
+            // if we knew the field type here (e.g. by encoding type in field name or looking up widget settings).
+            $sanitized_value = sanitize_text_field(stripslashes($value));
+            $form_data_for_email[$label] = $sanitized_value;
         }
 
-        // Simplistic required check: if a field key exists in POST but value is empty.
-        // This doesn't know if it was *actually* marked required in Elementor settings.
-        // A proper solution would need to compare against actual widget settings.
-        // For now, we'll skip server-side "required" validation to avoid complexity
-        // and rely on the browser's `required` attribute.
-        // If we had labels easily:
-        // $field_settings = ... // Logic to get specific field settings for $field_key
-        // if ($field_settings['field_required'] === 'yes' && empty($sanitized_value)) {
-        //    $errors[] = $field_settings['field_label'] . ' ' . esc_html__('is required.', 'xform-widget');
-        // }
-
-        // Basic Email Validation (if we could identify email fields)
-        // if ($field_settings['field_type'] === 'email' && !is_email($sanitized_value)) {
-        //    $errors[] = $field_settings['field_label'] . ': ' . esc_html__('Invalid email format.', 'xform-widget');
-        // }
+        // Server-side "required" validation is still a challenge here without easy access to original field settings.
+        // Relying on browser validation for Stage 1.
     }
 
 
     if (!empty($errors)) {
         $GLOBALS['xform_messages']['xform-' . $widget_id] = [
             'type' => 'error',
-            // For Stage 1, we'll use the generic error message from settings,
-            // as displaying individual field errors is more complex without AJAX/JS.
             'message' => sanitize_text_field($_POST['xform_error_message_setting'] ?? esc_html__('Please correct the errors and try again.', 'xform-widget'))
-            // 'message' => implode('<br>', $errors) // Alternative: show all errors
         ];
     } else {
         $email_body = esc_html__("You have received a new message from your website's contact form.", 'xform-widget') . "\n\n";
         foreach ($form_data_for_email as $label => $value) {
-            $email_body .= $label . ": " . $value . "\n";
+            $email_body .= esc_html($label) . ": " . esc_html($value) . "\n";
         }
         $email_body .= "\n--\n";
-        $email_body .= sprintf(esc_html__('This email was sent from a contact form on %s (%s)', 'xform-widget'), get_bloginfo('name'), home_url()) . "\n";
+        $email_body .= sprintf(esc_html__('This email was sent from a contact form on %s (%s)', 'xform-widget'), get_bloginfo('name'), esc_url(home_url())) . "\n";
 
+        // Set proper email headers
         $headers = [];
-        // Attempt to get a "reply-to" from an email field if one was submitted.
-        // This is a basic attempt; a more robust solution would identify the primary email field.
-        foreach ($submitted_fields as $field_key => $value) {
-            if (is_email(sanitize_email($value))) {
-                $headers[] = 'Reply-To: ' . sanitize_email($value);
-                break;
-            }
+        $admin_email = get_option('admin_email');
+        $site_domain = wp_parse_url(home_url(), PHP_URL_HOST);
+        $from_email = 'wordpress@' . $site_domain; // Use a generic email from the site's domain
+
+        $headers[] = 'From: ' . get_bloginfo('name') . ' <' . $from_email . '>';
+        if ($reply_to_email) {
+            $headers[] = 'Reply-To: ' . $reply_to_email;
         }
         $headers[] = 'Content-Type: text/plain; charset=UTF-8';
-
 
         $mail_sent = wp_mail($email_to, $email_subject, $email_body, $headers);
 
@@ -747,30 +745,15 @@ function xform_handle_submission_action() {
                 'message' => sanitize_text_field($_POST['xform_success_message_setting'] ?? esc_html__('Your message has been sent successfully.', 'xform-widget'))
             ];
         } else {
+            // If wp_mail() fails, provide a more specific error message if possible, or the generic one.
+            // For debugging, you might want to log $GLOBALS['phpmailer']->ErrorInfo here if you have access to it.
             $GLOBALS['xform_messages']['xform-' . $widget_id] = [
                 'type' => 'error',
-                'message' => sanitize_text_field($_POST['xform_error_message_setting'] ?? esc_html__('The email could not be sent.', 'xform-widget'))
+                'message' => sanitize_text_field($_POST['xform_error_message_setting'] ?? esc_html__('The email could not be sent. Please check site email configuration.', 'xform-widget'))
             ];
         }
     }
 }
 add_action('template_redirect', 'xform_handle_submission_action');
 
-/**
- * Register XForm Widget.
- *
- * Include widget file and register widget class.
- *
- * @since 1.0.0
- * @param \Elementor\Widgets_Manager $widgets_manager Elementor widgets manager.
- * @return void
- */
-function register_xform_widget( $widgets_manager ) {
-    // Since the class is in the same file, we just need to register it.
-    // If it were in a separate file, you would include it here first.
-    // require_once( __DIR__ . '/widgets/xform.php' ); // Example if in separate file
-
-    $widgets_manager->register( new XForm_Widget() );
-}
-add_action( 'elementor/widgets/register', 'register_xform_widget' );
 ?>
