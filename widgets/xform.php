@@ -79,6 +79,39 @@ class XForm_Widget extends \Elementor\Widget_Base {
     }
 
     /**
+     * Get script dependencies.
+     *
+     * Retrieve the list of script dependencies the widget requires.
+     *
+     * @since 1.0.0
+     * @access public
+     * @return array Widget scripts dependencies.
+     */
+    public function get_script_depends() {
+        // First, register the script.
+        wp_register_script(
+            'xform-frontend-script',
+            get_stylesheet_directory_uri() . '/assets/js/xform-frontend.js', // Assuming assets/js is in the theme root. Adjust if xform is a plugin.
+            ['jquery'],
+            '1.0.0', // Version
+            true     // In footer
+        );
+
+        // Localize script with AJAX URL and other data if needed
+        wp_localize_script(
+            'xform-frontend-script',
+            'xform_ajax_obj',
+            [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                // We can add other data like nonce here if needed for JS-side validation or specific actions
+                // 'nonce' => wp_create_nonce('xform_ajax_nonce_example') // Example, actual nonce is on the form
+            ]
+        );
+
+        return ['xform-frontend-script'];
+    }
+
+    /**
      * Register xform widget controls.
      *
      * Add input fields to allow the user to customize the widget settings.
@@ -428,14 +461,9 @@ class XForm_Widget extends \Elementor\Widget_Base {
 
         // Placeholder for displaying messages after form submission
         // This will be populated by the submission handler function
-        global $xform_messages;
-        $message_html = '';
-        if (isset($xform_messages[$form_id]) && !empty($xform_messages[$form_id])) {
-            $message_data = $xform_messages[$form_id];
-            $message_class = $message_data['type'] === 'success' ? 'xform-message-success' : 'xform-message-error';
-            $message_html = '<div class="xform-messages ' . esc_attr($message_class) . '">' . esc_html($message_data['message']) . '</div>';
-            unset($xform_messages[$form_id]); // Clear message after displaying
-        }
+        $settings = $this->get_settings_for_display();
+        $form_id = 'xform-' . $this->get_id();
+        $submit_button_text = !empty($settings['submit_text']) ? esc_html($settings['submit_text']) : esc_html__('Submit', 'xform-widget');
 
         ?>
         <style>
@@ -481,6 +509,7 @@ class XForm_Widget extends \Elementor\Widget_Base {
                 padding: 15px;
                 margin-top: 20px;
                 border-radius: 4px;
+                display: none; /* Initially hidden, shown by JS */
             }
             .xform-message-success {
                 background-color: #d4edda;
@@ -502,10 +531,11 @@ class XForm_Widget extends \Elementor\Widget_Base {
                 <p class="xform-description"><?php echo wp_kses_post($settings['form_description']); ?></p>
             <?php endif; ?>
 
-            <?php echo $message_html; // Display success/error messages here ?>
+            <div class="xform-messages"><!-- Populated by JavaScript --></div>
 
-            <form id="<?php echo esc_attr($form_id); ?>" class="xform-widget-form" method="post" action="<?php echo esc_url(htmlspecialchars($_SERVER['REQUEST_URI'])); ?>">
-                <input type="hidden" name="action" value="xform_submit_action">
+            <form id="<?php echo esc_attr($form_id); ?>" class="xform-widget-form xform-ajax-form" method="post" action="">
+                <?php // The 'action' attribute is not strictly necessary for AJAX forms but can be a fallback or for non-JS users if we add that later. ?>
+                <input type="hidden" name="action" value="xform_submit_action"> <?php // This is for WordPress AJAX handler ?>
                 <input type="hidden" name="xform_widget_id" value="<?php echo esc_attr($this->get_id()); ?>">
                 <input type="hidden" name="xform_email_to" value="<?php echo esc_attr($settings['email_to']); ?>">
                 <input type="hidden" name="xform_email_subject" value="<?php echo esc_attr($settings['email_subject']); ?>">
@@ -638,86 +668,95 @@ if (!isset($GLOBALS['xform_messages'])) {
  * @since 1.0.0
  */
 function xform_handle_submission_action() {
+    error_log('[XForm Debug] Entered xform_handle_submission_action.');
+
     // Ensure this is a POST request and our specific action
     if ('POST' !== $_SERVER['REQUEST_METHOD'] || !isset($_POST['action']) || 'xform_submit_action' !== $_POST['action']) {
+        if ('POST' === $_SERVER['REQUEST_METHOD']) { // Log if it's POST but not our action
+            error_log('[XForm Debug] POST request received, but not xform_submit_action. Action: ' . (isset($_POST['action']) ? esc_html($_POST['action']) : 'Not set'));
+        }
         return;
     }
+    error_log('[XForm Debug] Matched POST and action xform_submit_action.');
 
     $widget_id = isset($_POST['xform_widget_id']) ? sanitize_key($_POST['xform_widget_id']) : null;
     if (!$widget_id) {
-        // Cannot proceed without widget_id to verify nonce or get settings
+        error_log('[XForm Debug] Error: xform_widget_id not found in POST.');
+        // Optionally set a generic error message if you can't tie it to a form
         return;
     }
+    error_log('[XForm Debug] Widget ID: ' . esc_html($widget_id));
 
     // Verify nonce
     if (!isset($_POST['xform_nonce_field']) || !wp_verify_nonce($_POST['xform_nonce_field'], 'xform_submit_action_nonce_' . $widget_id)) {
+        error_log('[XForm Debug] Nonce verification failed for widget ID: ' . esc_html($widget_id));
         $GLOBALS['xform_messages']['xform-' . $widget_id] = [
             'type' => 'error',
             'message' => esc_html__('Security check failed. Please try again.', 'xform-widget')
         ];
         return;
     }
+    error_log('[XForm Debug] Nonce verified successfully for widget ID: ' . esc_html($widget_id));
 
-    // Get email settings from hidden fields (passed from render method)
-    $email_to = isset($_POST['xform_email_to']) ? sanitize_email($_POST['xform_email_to']) : get_option('admin_email');
+    // Get email settings from hidden fields
+    $email_to = isset($_POST['xform_email_to']) ? sanitize_email($_POST['xform_email_to']) : '';
     $email_subject_template = isset($_POST['xform_email_subject']) ? sanitize_text_field($_POST['xform_email_subject']) : 'New Form Submission from {site_title}';
+    $success_message_setting = isset($_POST['xform_success_message_setting']) ? sanitize_text_field($_POST['xform_success_message_setting']) : esc_html__('Your message has been sent successfully.', 'xform-widget');
+    $error_message_setting = isset($_POST['xform_error_message_setting']) ? sanitize_text_field($_POST['xform_error_message_setting']) : esc_html__('The email could not be sent. Please check site email configuration.', 'xform-widget');
 
-    // Replace placeholders in subject
+    if (empty($email_to)) {
+        error_log('[XForm Debug] Error: Email To address is empty. Widget ID: ' . esc_html($widget_id));
+        $GLOBALS['xform_messages']['xform-' . $widget_id] = [
+            'type' => 'error',
+            'message' => esc_html__('Admin email (Email To) is not configured for this form.', 'xform-widget')
+        ];
+        return;
+    }
+    error_log('[XForm Debug] Email To: ' . esc_html($email_to) . ', Subject Template: ' . esc_html($email_subject_template));
+
     $email_subject = str_replace('{site_title}', get_bloginfo('name'), $email_subject_template);
 
     $errors = [];
     $form_data_for_email = [];
     $submitted_fields = isset($_POST['xform_fields']) && is_array($_POST['xform_fields']) ? $_POST['xform_fields'] : [];
 
-    // Note: Validating required fields accurately server-side without AJAX
-    // requires knowing the original field settings (label, required status).
-    // This is complex because the settings are stored with the Elementor page data.
-    // For Stage 1, we'll do basic "is empty" check if the key exists.
-    // A more robust solution would involve retrieving widget settings using Elementor API on the server,
-    // or passing more field metadata via hidden inputs (can be cumbersome and less secure).
-
-    // For now, we'll assume all submitted fields from `xform_fields` should be processed.
-    // We don't have easy access to the 'field_label' or 'field_required' setting from the `register_controls` here
-    // without fetching the Elementor widget settings, which is complex in this non-AJAX context.
-    // So, we will use the field key as a pseudo-label.
-
-    if (empty($submitted_fields)) {
-        $errors[] = esc_html__('No data submitted.', 'xform-widget');
+    if (empty($submitted_fields) && 'POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['action']) && $_POST['action'] === 'xform_submit_action') {
+         error_log('[XForm Debug] No xform_fields data submitted despite form action match. Widget ID: ' . esc_html($widget_id));
+         // $errors[] = esc_html__('No data submitted.', 'xform-widget'); // This might be too strict if form can be empty
     }
 
     $reply_to_email = null;
 
     foreach ($submitted_fields as $field_name_key => $value) {
-        // Reconstruct label from sanitized key: replace hyphens with spaces, capitalize words
-        $label = ucwords(str_replace('-', ' ', $field_name_key));
+        $label = ucwords(str_replace(['-', '_'], ' ', sanitize_key($field_name_key))); // Sanitize key before using in str_replace
 
         $sanitized_value = '';
         if (is_array($value)) {
             $sanitized_value = array_map('sanitize_text_field', $value);
             $form_data_for_email[$label] = implode(', ', $sanitized_value);
         } else {
-            // Basic check if this might be an email field based on common label names
-            if (!$reply_to_email && (strpos(strtolower($label), 'email') !== false || strpos(strtolower($label), 'e-mail') !== false) && is_email($value)) {
-                $reply_to_email = sanitize_email($value);
+            $raw_value = stripslashes((string)$value); // Cast to string before stripslashes
+            if (!$reply_to_email && (stripos($label, 'email') !== false || stripos($label, 'e-mail') !== false) && is_email($raw_value)) {
+                $reply_to_email = sanitize_email($raw_value);
             }
-            // Use wp_kses_post for textareas to allow some HTML, sanitize_text_field for others.
-            // For simplicity in Stage 1, we'll use sanitize_text_field for all, but this could be refined
-            // if we knew the field type here (e.g. by encoding type in field name or looking up widget settings).
-            $sanitized_value = sanitize_text_field(stripslashes($value));
+            $sanitized_value = sanitize_text_field($raw_value);
             $form_data_for_email[$label] = $sanitized_value;
         }
-
-        // Server-side "required" validation is still a challenge here without easy access to original field settings.
-        // Relying on browser validation for Stage 1.
+        error_log("[XForm Debug] Processed field - Label: " . esc_html($label) . ", Sanitized Value: " . esc_html(is_array($sanitized_value) ? implode(', ', $sanitized_value) : $sanitized_value));
     }
 
+    // Server-side "required" validation is still a challenge here without easy access to original field settings.
+    // This is a placeholder for where more robust validation would go.
+    // For now, we rely on browser `required` attribute.
 
     if (!empty($errors)) {
+        error_log('[XForm Debug] Validation errors: ' . esc_html(implode(', ', $errors)) . ' Widget ID: ' . esc_html($widget_id));
         $GLOBALS['xform_messages']['xform-' . $widget_id] = [
             'type' => 'error',
-            'message' => sanitize_text_field($_POST['xform_error_message_setting'] ?? esc_html__('Please correct the errors and try again.', 'xform-widget'))
+            'message' => $error_message_setting // Use the setting, or implode errors
         ];
     } else {
+        error_log('[XForm Debug] No validation errors, proceeding to build email. Widget ID: ' . esc_html($widget_id));
         $email_body = esc_html__("You have received a new message from your website's contact form.", 'xform-widget') . "\n\n";
         foreach ($form_data_for_email as $label => $value) {
             $email_body .= esc_html($label) . ": " . esc_html($value) . "\n";
@@ -725,35 +764,206 @@ function xform_handle_submission_action() {
         $email_body .= "\n--\n";
         $email_body .= sprintf(esc_html__('This email was sent from a contact form on %s (%s)', 'xform-widget'), get_bloginfo('name'), esc_url(home_url())) . "\n";
 
-        // Set proper email headers
         $headers = [];
-        $admin_email = get_option('admin_email');
-        $site_domain = wp_parse_url(home_url(), PHP_URL_HOST);
-        $from_email = 'wordpress@' . $site_domain; // Use a generic email from the site's domain
+        $site_domain = preg_replace('/^www\./', '', sanitize_text_field(wp_parse_url(home_url(), PHP_URL_HOST))); // Sanitize host
+        $from_email = 'wordpress@' . $site_domain;
 
         $headers[] = 'From: ' . get_bloginfo('name') . ' <' . $from_email . '>';
         if ($reply_to_email) {
             $headers[] = 'Reply-To: ' . $reply_to_email;
+            error_log('[XForm Debug] Reply-To header set to: ' . esc_html($reply_to_email));
+        } else {
+            error_log('[XForm Debug] No reply-to email identified or set.');
         }
         $headers[] = 'Content-Type: text/plain; charset=UTF-8';
 
+        error_log('[XForm Debug] Attempting to send email. To: ' . esc_html($email_to) . ', Subject: ' . esc_html($email_subject));
+        error_log('[XForm Debug] Email Body: ' . $email_body); // Be careful logging full body if sensitive data
+        error_log('[XForm Debug] Email Headers: ' . esc_html(implode("\r\n", $headers)));
+
+        add_action('wp_mail_failed', 'xform_log_wp_mail_failure_action', 10, 1);
         $mail_sent = wp_mail($email_to, $email_subject, $email_body, $headers);
+        remove_action('wp_mail_failed', 'xform_log_wp_mail_failure_action', 10);
 
         if ($mail_sent) {
+            error_log('[XForm Debug] wp_mail() returned true. Email supposedly sent. Widget ID: ' . esc_html($widget_id));
             $GLOBALS['xform_messages']['xform-' . $widget_id] = [
                 'type' => 'success',
-                'message' => sanitize_text_field($_POST['xform_success_message_setting'] ?? esc_html__('Your message has been sent successfully.', 'xform-widget'))
+                'message' => $success_message_setting
             ];
         } else {
-            // If wp_mail() fails, provide a more specific error message if possible, or the generic one.
-            // For debugging, you might want to log $GLOBALS['phpmailer']->ErrorInfo here if you have access to it.
+            error_log('[XForm Debug] wp_mail() returned false. Email sending FAILED. Widget ID: ' . esc_html($widget_id));
+            $phpmailer_error = get_transient('xform_phpmailer_error_' . $widget_id);
+            $error_message_to_display = $error_message_setting;
+            if ($phpmailer_error) {
+                error_log('[XForm Debug] PHPMailer Error for ' . esc_html($widget_id) . ': ' . esc_html($phpmailer_error));
+                // Optionally append PHPMailer error to user message if WP_DEBUG is on, for admin users
+                if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options')) {
+                    $error_message_to_display .= ' (Debug: ' . esc_html($phpmailer_error) . ')';
+                }
+                delete_transient('xform_phpmailer_error_' . $widget_id);
+            }
             $GLOBALS['xform_messages']['xform-' . $widget_id] = [
                 'type' => 'error',
-                'message' => sanitize_text_field($_POST['xform_error_message_setting'] ?? esc_html__('The email could not be sent. Please check site email configuration.', 'xform-widget'))
+                'message' => $error_message_to_display
             ];
         }
     }
 }
-add_action('template_redirect', 'xform_handle_submission_action');
+// Ensure the hook for submission handling has a unique name if this file could be included multiple times,
+// or ensure it's only included once. For now, assuming it's included once.
+// Running it a bit earlier (priority 9) in case other plugins on template_redirect interfere.
+// add_action('template_redirect', 'xform_handle_submission_action', 9); // Commented out for AJAX
+
+/**
+ * AJAX handler for XForm submission.
+ *
+ * @since 1.1.0 (AJAX update)
+ */
+function xform_ajax_submit_handler() {
+    error_log('[XForm AJAX Debug] Entered xform_ajax_submit_handler.');
+
+    $widget_id = isset($_POST['xform_widget_id']) ? sanitize_key($_POST['xform_widget_id']) : null;
+    if (!$widget_id) {
+        error_log('[XForm AJAX Debug] Error: xform_widget_id not found in POST.');
+        wp_send_json_error(['message' => esc_html__('Form configuration error. Widget ID missing.', 'xform-widget')]);
+        return;
+    }
+    error_log('[XForm AJAX Debug] Widget ID: ' . esc_html($widget_id));
+
+    // Verify nonce. Note: check_ajax_referer dies on failure.
+    // The second parameter 'xform_nonce_field' is the name of the nonce field in $_POST.
+    if (false === check_ajax_referer('xform_submit_action_nonce_' . $widget_id, 'xform_nonce_field', false)) {
+        error_log('[XForm AJAX Debug] Nonce verification failed for widget ID: ' . esc_html($widget_id));
+        wp_send_json_error(['message' => esc_html__('Security check failed. Please refresh and try again.', 'xform-widget')]);
+        return;
+    }
+    error_log('[XForm AJAX Debug] Nonce verified successfully for widget ID: ' . esc_html($widget_id));
+
+    // Get email settings from hidden fields
+    $email_to = isset($_POST['xform_email_to']) ? sanitize_email($_POST['xform_email_to']) : '';
+    $email_subject_template = isset($_POST['xform_email_subject']) ? sanitize_text_field($_POST['xform_email_subject']) : 'New Form Submission from {site_title}';
+    $success_message_setting = isset($_POST['xform_success_message_setting']) ? sanitize_text_field($_POST['xform_success_message_setting']) : esc_html__('Your message has been sent successfully.', 'xform-widget');
+    $error_message_setting = isset($_POST['xform_error_message_setting']) ? sanitize_text_field($_POST['xform_error_message_setting']) : esc_html__('The email could not be sent. Please check site email configuration.', 'xform-widget');
+
+    if (empty($email_to)) {
+        error_log('[XForm AJAX Debug] Error: Email To address is empty. Widget ID: ' . esc_html($widget_id));
+        wp_send_json_error(['message' => esc_html__('Admin email (Email To) is not configured for this form.', 'xform-widget')]);
+        return;
+    }
+    error_log('[XForm AJAX Debug] Email To: ' . esc_html($email_to) . ', Subject Template: ' . esc_html($email_subject_template));
+
+    $email_subject = str_replace('{site_title}', get_bloginfo('name'), $email_subject_template);
+
+    $errors = []; // For collecting specific field validation errors if implemented later
+    $form_data_for_email = [];
+    $submitted_fields = isset($_POST['xform_fields']) && is_array($_POST['xform_fields']) ? $_POST['xform_fields'] : [];
+
+    if (empty($submitted_fields)) {
+         error_log('[XForm AJAX Debug] No xform_fields data submitted. Widget ID: ' . esc_html($widget_id));
+         // Consider if this is an error or just an empty submission.
+         // For now, we'll let it proceed, but server-side required field validation would catch this.
+    }
+
+    $reply_to_email = null;
+
+    foreach ($submitted_fields as $field_name_key => $value) {
+        $label = ucwords(str_replace(['-', '_'], ' ', sanitize_key($field_name_key)));
+
+        $sanitized_value = '';
+        if (is_array($value)) {
+            $sanitized_value = array_map('sanitize_text_field', $value);
+            $form_data_for_email[$label] = implode(', ', $sanitized_value);
+        } else {
+            $raw_value = stripslashes((string)$value);
+            if (!$reply_to_email && (stripos($label, 'email') !== false || stripos($label, 'e-mail') !== false) && is_email($raw_value)) {
+                $reply_to_email = sanitize_email($raw_value);
+            }
+            $sanitized_value = sanitize_text_field($raw_value);
+            $form_data_for_email[$label] = $sanitized_value;
+        }
+        // Server-side required validation would go here by comparing against widget settings.
+        // For now, relying on client-side `required`.
+        // Example:
+        // $field_setting = get_field_setting_from_widget_options($widget_id, $field_name_key);
+        // if ($field_setting['is_required'] && empty($sanitized_value)) {
+        //    $errors[$field_name_key] = $label . ' is required.';
+        // }
+        error_log("[XForm AJAX Debug] Processed field - Label: " . esc_html($label) . ", Sanitized Value: " . esc_html(is_array($sanitized_value) ? implode(', ', $sanitized_value) : $sanitized_value));
+    }
+
+
+    if (!empty($errors)) {
+        error_log('[XForm AJAX Debug] Validation errors: ' . esc_html(implode(', ', $errors)) . ' Widget ID: ' . esc_html($widget_id));
+        wp_send_json_error(['message' => $error_message_setting, 'errors' => $errors]);
+        return;
+    }
+
+    error_log('[XForm AJAX Debug] No validation errors, proceeding to build email. Widget ID: ' . esc_html($widget_id));
+    $email_body = esc_html__("You have received a new message from your website's contact form.", 'xform-widget') . "\n\n";
+    foreach ($form_data_for_email as $label => $value) {
+        $email_body .= esc_html($label) . ": " . esc_html($value) . "\n";
+    }
+    $email_body .= "\n--\n";
+    $email_body .= sprintf(esc_html__('This email was sent from a contact form on %s (%s)', 'xform-widget'), get_bloginfo('name'), esc_url(home_url())) . "\n";
+
+    $headers = [];
+    $site_domain = preg_replace('/^www\./', '', sanitize_text_field(wp_parse_url(home_url(), PHP_URL_HOST)));
+    $from_email = 'wordpress@' . $site_domain;
+
+    $headers[] = 'From: ' . get_bloginfo('name') . ' <' . $from_email . '>';
+    if ($reply_to_email) {
+        $headers[] = 'Reply-To: ' . $reply_to_email;
+        error_log('[XForm AJAX Debug] Reply-To header set to: ' . esc_html($reply_to_email));
+    } else {
+        error_log('[XForm AJAX Debug] No reply-to email identified or set.');
+    }
+    $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+
+    error_log('[XForm AJAX Debug] Attempting to send email. To: ' . esc_html($email_to) . ', Subject: ' . esc_html($email_subject));
+    // error_log('[XForm AJAX Debug] Email Body: ' . $email_body); // Potentially sensitive
+    error_log('[XForm AJAX Debug] Email Headers: ' . esc_html(implode("\r\n", $headers)));
+
+    add_action('wp_mail_failed', 'xform_log_wp_mail_failure_action', 10, 1);
+    $mail_sent = wp_mail($email_to, $email_subject, $email_body, $headers);
+    remove_action('wp_mail_failed', 'xform_log_wp_mail_failure_action', 10);
+
+    if ($mail_sent) {
+        error_log('[XForm AJAX Debug] wp_mail() returned true. Email supposedly sent. Widget ID: ' . esc_html($widget_id));
+        wp_send_json_success(['message' => $success_message_setting]);
+    } else {
+        error_log('[XForm AJAX Debug] wp_mail() returned false. Email sending FAILED. Widget ID: ' . esc_html($widget_id));
+        $phpmailer_error = get_transient('xform_phpmailer_error_' . $widget_id);
+        $error_message_to_display = $error_message_setting;
+        if ($phpmailer_error) {
+            error_log('[XForm AJAX Debug] PHPMailer Error for ' . esc_html($widget_id) . ': ' . esc_html($phpmailer_error));
+            if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options')) {
+                $error_message_to_display .= ' (Debug: ' . esc_html($phpmailer_error) . ')';
+            }
+            delete_transient('xform_phpmailer_error_' . $widget_id);
+        }
+        wp_send_json_error(['message' => $error_message_to_display]);
+    }
+    // Note: wp_send_json_success and wp_send_json_error automatically die()
+}
+add_action('wp_ajax_xform_submit_action', 'xform_ajax_submit_handler');
+add_action('wp_ajax_nopriv_xform_submit_action', 'xform_ajax_submit_handler');
+
+
+/**
+ * Logs PHPMailer errors via wp_mail_failed hook.
+ * We use a transient to pass the error message back to the main submission handler,
+ * as the $GLOBALS['phpmailer'] might not be reliably accessible right after wp_mail if it fails.
+ * @param WP_Error $wp_error
+ */
+function xform_log_wp_mail_failure_action( $wp_error ){
+    if (is_wp_error($wp_error)) {
+        $error_message = $wp_error->get_error_message();
+        error_log('[XForm Debug] wp_mail_failed hook. PHPMailer Error: ' . esc_html($error_message));
+        // Try to get widget_id from POST if available to make transient unique
+        $widget_id = isset($_POST['xform_widget_id']) ? sanitize_key($_POST['xform_widget_id']) : 'general';
+        set_transient('xform_phpmailer_error_' . $widget_id, $error_message, 60);
+    }
+}
 
 ?>
