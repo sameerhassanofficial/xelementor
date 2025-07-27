@@ -82,31 +82,48 @@ function handle_advanced_form_submission() {
             $email_from_name = sanitize_text_field($_POST['_email_from_name']);
             $email_message_template = sanitize_textarea_field($_POST['_email_message']);
             
-            // Prepare form data for email
+            // Prepare form data for email with better formatting
             $form_data_str = '';
             foreach ($processed_data as $key => $value) {
-                $form_data_str .= "{$key}: $value\n";
+                $form_data_str .= "**" . ucfirst(str_replace('_', ' ', $key)) . ":** " . $value . "\n";
             }
             $email_message = str_replace('[all-fields]', $form_data_str, $email_message_template);
             
-            // Set headers
+            // Add form submission details
+            $email_message .= "\n\n---\nForm submitted from: " . get_bloginfo('name') . "\n";
+            $email_message .= "Submission time: " . current_time('Y-m-d H:i:s') . "\n";
+            $email_message .= "Form ID: " . $form_id . "\n";
+            $email_message .= "IP Address: " . $_SERVER['REMOTE_ADDR'] . "\n";
+            
+            // Set headers - use admin email as from address for better deliverability
+            $admin_email = get_option('admin_email');
             $headers = [
-                'From: ' . $email_from_name . ' <' . $email_to . '>',
+                'From: ' . $email_from_name . ' <' . $admin_email . '>',
+                'Reply-To: ' . $email_from_name . ' <' . $admin_email . '>',
                 'Content-Type: text/plain; charset=UTF-8',
             ];
-            print_r($email_to);
-            print_r($email_subject);
-            print_r($email_from_name);
-            print_r($email_message_template);
-            print_r($email_message);exit;
+            
             // Send email
             $email_sent = wp_mail($email_to, $email_subject, $email_message, $headers);
+            
+            // Log email attempt for debugging
+            if (!$email_sent) {
+                error_log('XForm Email failed to send to: ' . $email_to . ' Subject: ' . $email_subject);
+            } else {
+                error_log('XForm Email sent successfully to: ' . $email_to);
+            }
         }
         
-        if ($email_sent && $result !== false) {
-            wp_send_json_success(['message' => 'Form submitted successfully and email sent!']);
-        } elseif ($result !== false) {
-            wp_send_json_success(['message' => 'Form submitted successfully!']);
+        if ($result !== false) {
+            if (isset($_POST['_send_email']) && $_POST['_send_email'] === 'yes') {
+                if ($email_sent) {
+                    wp_send_json_success(['message' => 'Form submitted successfully and email sent!']);
+                } else {
+                    wp_send_json_success(['message' => 'Form submitted successfully, but email could not be sent. Please check your email configuration.']);
+                }
+            } else {
+                wp_send_json_success(['message' => 'Form submitted successfully!']);
+            }
         } else {
             wp_send_json_error(['message' => 'Database error occurred']);
         }
@@ -198,6 +215,31 @@ function debug_form_submission() {
     }
 }
 add_action('init', 'debug_form_submission');
+
+// Add email testing function
+function test_xform_email() {
+    if (isset($_GET['test_xform_email']) && current_user_can('manage_options')) {
+        $admin_email = get_option('admin_email');
+        $subject = 'XForm Email Test';
+        $message = 'This is a test email from XForm widget to verify email functionality.';
+        $headers = [
+            'From: ' . get_bloginfo('name') . ' <' . $admin_email . '>',
+            'Content-Type: text/plain; charset=UTF-8',
+        ];
+        
+        $sent = wp_mail($admin_email, $subject, $message, $headers);
+        
+        if ($sent) {
+            echo '<div style="background: green; color: white; padding: 10px; margin: 10px;">Email test successful! Check your inbox.</div>';
+        } else {
+            echo '<div style="background: red; color: white; padding: 10px; margin: 10px;">Email test failed! Check your SMTP configuration.</div>';
+        }
+        
+        // Log the test
+        error_log('XForm Email Test - Sent: ' . ($sent ? 'Yes' : 'No'));
+    }
+}
+add_action('init', 'test_xform_email');
 
 
 

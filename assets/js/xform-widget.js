@@ -34,7 +34,13 @@ jQuery(document).ready(function($) {
                 action: 'submit_advanced_form',
                 form_id: formId,
                 form_data: formData,
-                advanced_form_nonce: advanced_form_ajax.nonce
+                advanced_form_nonce: advanced_form_ajax.nonce,
+                // Include email settings if they exist
+                _send_email: form.find('input[name="_send_email"]').val(),
+                _email_to: form.find('input[name="_email_to"]').val(),
+                _email_subject: form.find('input[name="_email_subject"]').val(),
+                _email_from_name: form.find('input[name="_email_from_name"]').val(),
+                _email_message: form.find('input[name="_email_message"]').val()
             },
             success: function(response) {
                 if (response.success) {
