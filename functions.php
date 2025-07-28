@@ -46,20 +46,54 @@ function handle_advanced_form_submission() {
     }
     
     // Check if required data exists
-    if (!isset($_POST['form_data']) || !isset($_POST['form_id'])) {
-        wp_send_json_error(['message' => 'Missing form data']);
+    if (!isset($_POST['form_id'])) {
+        wp_send_json_error(['message' => 'Missing form ID']);
         return;
     }
     
-    $form_data = $_POST['form_data'];
     $form_id = sanitize_text_field($_POST['form_id']);
     
-    // Process and sanitize form data
+    // Process and sanitize form data - handle both old and new format
     $processed_data = [];
-    if (is_array($form_data)) {
+    
+    // Handle FormData format (new format with file uploads)
+    if (isset($_POST['form_data']) && is_array($_POST['form_data'])) {
+        // Old format
+        $form_data = $_POST['form_data'];
         foreach ($form_data as $field) {
             if (isset($field['name']) && isset($field['value'])) {
                 $processed_data[sanitize_text_field($field['name'])] = sanitize_textarea_field($field['value']);
+            }
+        }
+    } else {
+        // New FormData format - process all POST data except system fields
+        $exclude_fields = ['action', 'form_id', 'advanced_form_nonce', '_send_email', '_email_to', '_email_subject', '_email_from_name', '_email_custom_message', '_email_message', '_email_format'];
+        
+        foreach ($_POST as $key => $value) {
+            if (!in_array($key, $exclude_fields)) {
+                $processed_data[sanitize_text_field($key)] = sanitize_textarea_field($value);
+            }
+        }
+    }
+
+    // Handle file uploads
+    if (!empty($_FILES)) {
+        $upload_dir = wp_upload_dir();
+        $form_uploads_dir = $upload_dir['basedir'] . '/xform-uploads/' . $form_id;
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($form_uploads_dir)) {
+            wp_mkdir_p($form_uploads_dir);
+        }
+        
+        foreach ($_FILES as $field_name => $file_data) {
+            if ($file_data['error'] === UPLOAD_ERR_OK) {
+                $file_name = sanitize_file_name($file_data['name']);
+                $file_path = $form_uploads_dir . '/' . $file_name;
+                
+                if (move_uploaded_file($file_data['tmp_name'], $file_path)) {
+                    $processed_data[$field_name] = $file_name . ' (Uploaded)';
+                }
             }
         }
     }
@@ -76,183 +110,185 @@ function handle_advanced_form_submission() {
         
         if ($result !== false) {
             $email_sent = false;
+            
+            // Only process email if it's enabled
         if (isset($_POST['_send_email']) && $_POST['_send_email'] === 'yes') {
             $email_to = sanitize_email($_POST['_email_to']);
             $email_subject = sanitize_text_field($_POST['_email_subject']);
             $email_from_name = sanitize_text_field($_POST['_email_from_name']);
-            $email_custom_message = sanitize_textarea_field($_POST['_email_custom_message']);
+                $email_custom_message = sanitize_textarea_field($_POST['_email_custom_message']);
             $email_message_template = sanitize_textarea_field($_POST['_email_message']);
-            $email_format = sanitize_text_field($_POST['_email_format']);
+                $email_format = sanitize_text_field($_POST['_email_format']);
             
-            // Debug: Log the email format
-            error_log('XForm Email Format: ' . $email_format);
-            
-            // Prepare form data for email with clean formatting
+                // Prepare form data for email with clean formatting
             $form_data_str = '';
-            $form_data_html = '';
-            
-            // Fields to exclude from email - only show actual user input
-            $exclude_fields = [
-                'advanced_form_nonce', 'action', 'form_id', 'form_data',
-                'wp_http_referer', 'send_email', 'email_to', 'email_subject', 
-                'email_from_name', 'email_message', 'email_format', 'email_custom_message',
-                '_send_email', '_email_to', '_email_subject', '_email_from_name', 
-                '_email_message', '_email_format', '_email_custom_message',
-                'wp_http_referer', 'http_referer', 'referer'
-            ];
-            
+                $form_data_html = '';
+                
+                // Fields to exclude from email - only show actual user input
+                $exclude_fields = [
+                    'advanced_form_nonce', 'action', 'form_id', 'form_data',
+                    'wp_http_referer', 'send_email', 'email_to', 'email_subject', 
+                    'email_from_name', 'email_message', 'email_format', 'email_custom_message',
+                    '_send_email', '_email_to', '_email_subject', '_email_from_name', 
+                    '_email_message', '_email_format', '_email_custom_message',
+                    'wp_http_referer', 'http_referer', 'referer'
+                ];
+                
             foreach ($processed_data as $key => $value) {
-                // Skip empty values and system fields
-                if (empty($value) || in_array($key, $exclude_fields)) {
-                    continue;
+                    // Skip empty values and system fields
+                    if (empty($value) || in_array($key, $exclude_fields)) {
+                        continue;
+                    }
+                    
+                    // Skip any field that starts with underscore or contains system keywords
+                    if (strpos($key, '_') === 0 || 
+                        in_array(strtolower($key), ['wp_http_referer', 'http_referer', 'referer', 'action', 'nonce', 'form_id', 'form_data'])) {
+                        continue;
+                    }
+                    
+                    // Clean up field names for better readability
+                    $clean_key = ucwords(str_replace(['_', '-'], ' ', $key));
+                    
+                    // Plain text format
+                    $form_data_str .= $clean_key . ": " . $value . "\n";
+                    
+                    // HTML format with optimized styling for better email client compatibility
+                    $form_data_html .= "<tr><td style='padding: 12px 15px; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333; width: 30%; font-size: 13px;'>" . $clean_key . "</td><td style='padding: 12px 15px; border-bottom: 1px solid #e0e0e0; color: #333333; font-size: 13px; line-height: 1.4;'>" . esc_html($value) . "</td></tr>";
                 }
                 
-                // Skip any field that starts with underscore or contains system keywords
-                if (strpos($key, '_') === 0 || 
-                    in_array(strtolower($key), ['wp_http_referer', 'http_referer', 'referer', 'action', 'nonce', 'form_id', 'form_data'])) {
-                    continue;
-                }
-                
-                // Clean up field names for better readability
-                $clean_key = ucwords(str_replace(['_', '-'], ' ', $key));
-                
-                // Plain text format
-                $form_data_str .= $clean_key . ": " . $value . "\n";
-                
-                // HTML format with email-client compatible styling
-                $form_data_html .= "<tr><td style='padding: 16px 20px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #475569; width: 35%; font-size: 14px; font-family: Arial, sans-serif;'>" . $clean_key . "</td><td style='padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-size: 14px; line-height: 1.5; font-family: Arial, sans-serif;'>" . esc_html($value) . "</td></tr>";
-            }
-            
-            if ($email_format === 'html') {
-                // Modern, beautiful HTML email template with email-client compatible CSS
-                $html_template = '
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>New Message</title>
-                </head>
-                <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #667eea;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #667eea;">
-                        <tr>
-                            <td align="center" style="padding: 20px;">
-                                <table width="500" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                                    
-                                    <!-- Header -->
-                                    <tr>
-                                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; border-radius: 20px 20px 0 0;">
-                                            <div style="width: 60px; height: 60px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 20px; display: inline-block; line-height: 60px; text-align: center;">
-                                                <span style="font-size: 24px; color: white;">📧</span>
-                                            </div>
-                                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">New Message</h1>
-                                            <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">You have received a new form submission</p>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Content -->
-                                    <tr>
-                                        <td style="padding: 40px 30px;">
-                                            ' . (!empty($email_custom_message) ? '<div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; margin-bottom: 30px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: #1e40af; font-size: 16px; line-height: 1.6;">' . nl2br(esc_html($email_custom_message)) . '</p></div>' : '') . '
-                                            
-                                            <!-- Form Data -->
-                                            <div style="background-color: #f8fafc; border-radius: 16px; padding: 30px; border: 1px solid #e2e8f0;">
-                                                <h2 style="margin: 0 0 25px 0; color: #1f2937; font-size: 20px; font-weight: bold; text-align: center;">Message Details</h2>
+                if ($email_format === 'html') {
+                    // Optimized HTML email template for better performance and compatibility
+                    $html_template = '
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>New Form Submission</title>
+                    </head>
+                    <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4;">
+                            <tr>
+                                <td align="center" style="padding: 20px;">
+                                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                        
+                                        <!-- Header -->
+                                        <tr>
+                                            <td style="background-color: #007cba; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                                                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">New Form Submission</h1>
+                                                <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px;">You have received a new message from your website</p>
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Content -->
+                                        <tr>
+                                            <td style="padding: 30px;">
+                                                ' . (!empty($email_custom_message) ? '<div style="background-color: #e7f3ff; border-left: 4px solid #007cba; padding: 15px; margin-bottom: 20px;"><p style="margin: 0; color: #007cba; font-size: 14px; line-height: 1.5;">' . nl2br(esc_html($email_custom_message)) . '</p></div>' : '') . '
                                                 
-                                                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                                                    <tbody>
-                                                        ' . $form_data_html . '
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                </body>
-                </html>';
-                
-                $email_message = $html_template;
-            } else {
-                // Clean plain text format
-                if (!empty($email_custom_message)) {
-                    $email_message = $email_custom_message . "\n\n";
+                                                <!-- Form Data -->
+                                                <div style="background-color: #f9f9f9; border-radius: 6px; padding: 20px; border: 1px solid #e0e0e0;">
+                                                    <h2 style="margin: 0 0 20px 0; color: #333333; font-size: 18px; font-weight: bold;">Form Details</h2>
+                                                    
+                                                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #e0e0e0;">
+                                                        <tbody>
+                                                            ' . $form_data_html . '
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                
+                                                <!-- Footer -->
+                                                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666666; font-size: 12px;">
+                                                    <p>This message was sent from your website contact form.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </body>
+                    </html>';
+                    
+                    $email_message = $html_template;
+                } else {
+                    // Clean plain text format
+                    if (!empty($email_custom_message)) {
+                        $email_message = $email_custom_message . "\n\n";
+                    }
+                    $email_message .= str_replace('[all-fields]', $form_data_str, $email_message_template);
                 }
-                $email_message .= str_replace('[all-fields]', $form_data_str, $email_message_template);
-            }
-            
-            // Set headers - use admin email as from address for better deliverability
-            $admin_email = get_option('admin_email');
-            $content_type = ($email_format === 'html') ? 'text/html' : 'text/plain';
+                
+                // Set headers - use admin email as from address for better deliverability
+                $admin_email = get_option('admin_email');
+                $content_type = ($email_format === 'html') ? 'text/html' : 'text/plain';
             $headers = [
-                'From: ' . $email_from_name . ' <' . $admin_email . '>',
-                'Reply-To: ' . $admin_email,
-                'Content-Type: ' . $content_type . '; charset=UTF-8',
-                'MIME-Version: 1.0',
-                'X-Mailer: WordPress',
-            ];
-            
-            // Send email with better error handling
-            $email_sent = wp_mail($email_to, $email_subject, $email_message, $headers);
-            
-            // If HTML email fails, try plain text as fallback
-            if (!$email_sent && $email_format === 'html') {
-                error_log('XForm HTML email failed, trying plain text fallback');
-                
-                // Create plain text version
-                $plain_text_message = '';
-                if (!empty($email_custom_message)) {
-                    $plain_text_message = $email_custom_message . "\n\n";
-                }
-                $plain_text_message .= $form_data_str;
-                
-                // Try with plain text headers
-                $plain_headers = [
                     'From: ' . $email_from_name . ' <' . $admin_email . '>',
                     'Reply-To: ' . $admin_email,
-                    'Content-Type: text/plain; charset=UTF-8',
+                    'Content-Type: ' . $content_type . '; charset=UTF-8',
+                    'MIME-Version: 1.0',
                     'X-Mailer: WordPress',
                 ];
                 
-                $email_sent = wp_mail($email_to, $email_subject, $plain_text_message, $plain_headers);
+                // Send email with timeout optimization
+                $email_sent = false;
                 
-                if ($email_sent) {
-                    error_log('XForm Plain text fallback email sent successfully');
+                // Set a timeout for email sending to prevent hanging
+                set_time_limit(30);
+                
+                try {
+                    $email_sent = wp_mail($email_to, $email_subject, $email_message, $headers);
+                } catch (Exception $e) {
+                    error_log('XForm Email Exception: ' . $e->getMessage());
+                    $email_sent = false;
+                }
+                
+                // If HTML email fails, try plain text as fallback
+                if (!$email_sent && $email_format === 'html') {
+                    error_log('XForm HTML email failed, trying plain text fallback');
+                    
+                    // Create plain text version
+                    $plain_text_message = '';
+                    if (!empty($email_custom_message)) {
+                        $plain_text_message = $email_custom_message . "\n\n";
+                    }
+                    $plain_text_message .= $form_data_str;
+                    
+                    // Try with plain text headers
+                    $plain_headers = [
+                        'From: ' . $email_from_name . ' <' . $admin_email . '>',
+                        'Reply-To: ' . $admin_email,
+                'Content-Type: text/plain; charset=UTF-8',
+                        'X-Mailer: WordPress',
+                    ];
+                    
+                    $email_sent = wp_mail($email_to, $email_subject, $plain_text_message, $plain_headers);
+                    
+                    if ($email_sent) {
+                        error_log('XForm Plain text fallback email sent successfully');
+                    }
+                }
+                
+                // Log email attempt for debugging
+                if (!$email_sent) {
+                    error_log('XForm Email failed to send to: ' . $email_to . ' Subject: ' . $email_subject . ' Format: ' . $email_format);
+        } else {
+                    error_log('XForm Email sent successfully to: ' . $email_to . ' Format: ' . $email_format);
                 }
             }
             
-            // Log email attempt for debugging
-            if (!$email_sent) {
-                error_log('XForm Email failed to send to: ' . $email_to . ' Subject: ' . $email_subject . ' Format: ' . $email_format);
-                error_log('XForm Email Headers: ' . print_r($headers, true));
-                error_log('XForm Email Content Length: ' . strlen($email_message));
-            } else {
-                error_log('XForm Email sent successfully to: ' . $email_to . ' Format: ' . $email_format);
-            }
-        }
-        
-        if ($result !== false) {
-            if (isset($_POST['_send_email']) && $_POST['_send_email'] === 'yes') {
-                if ($email_sent) {
-                    wp_send_json_success(['message' => 'Form submitted successfully and email sent!']);
-                } else {
-                    wp_send_json_success(['message' => 'Form submitted successfully, but email could not be sent. Please check your email configuration.']);
-                }
-            } else {
-                wp_send_json_success(['message' => 'Form submitted successfully!']);
-            }
+            // Return success response immediately
+            wp_send_json_success([
+                'message' => 'Thank you! Your message has been sent.',
+                'email_sent' => $email_sent ?? false
+            ]);
+            
         } else {
-            wp_send_json_error(['message' => 'Database error occurred']);
-        }
-        } else {
-            wp_send_json_error(['message' => 'Database error occurred']);
+            wp_send_json_error(['message' => 'Failed to save form data']);
         }
     } catch (Exception $e) {
-        error_log('Form submission error: ' . $e->getMessage());
-        wp_send_json_error(['message' => 'Form submission failed. Please try again.']);
+        error_log('XForm Database Error: ' . $e->getMessage());
+        wp_send_json_error(['message' => 'An error occurred while processing your request']);
     }
 }
 
