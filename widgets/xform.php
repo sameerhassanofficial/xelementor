@@ -231,15 +231,62 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
         );
 
         $this->add_control(
-            'email_message',
+            'email_custom_message',
             [
-                'label' => __('Message', 'textdomain'),
+                'label' => __('Custom Message', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::TEXTAREA,
-                'default' => __("A new form submission has been received.\n\n[all-fields]", 'textdomain'),
+                'default' => __("", 'textdomain'),
                 'condition' => [
                     'send_email' => 'yes',
                 ],
-                'description' => __('Use the shortcode [all-fields] to include all form fields.', 'textdomain'),
+                'description' => __('Optional custom message to include before form data.', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'email_format',
+            [
+                'label' => __('Email Format', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'html',
+                'options' => [
+                    'html' => __('HTML (Beautiful Design)', 'textdomain'),
+                    'plain' => __('Plain Text', 'textdomain'),
+                ],
+                'condition' => [
+                    'send_email' => 'yes',
+                ],
+                'description' => __('Choose HTML for modern design or Plain Text for simple format.', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'email_message',
+            [
+                'label' => __('Form Data Placement', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::TEXTAREA,
+                'default' => __("[all-fields]", 'textdomain'),
+                'condition' => [
+                    'send_email' => 'yes',
+                ],
+                'description' => __('Use [all-fields] to include form data. For HTML format, the template will be automatically applied.', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'email_format',
+            [
+                'label' => __('Email Format', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'plain',
+                'options' => [
+                    'plain' => __('Plain Text', 'textdomain'),
+                    'html' => __('HTML', 'textdomain'),
+                ],
+                'condition' => [
+                    'send_email' => 'yes',
+                ],
+                'description' => __('Choose email format. HTML provides better formatting.', 'textdomain'),
             ]
         );
 
@@ -378,7 +425,9 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                     <input type="hidden" name="_email_to" value="<?php echo esc_attr($settings['email_to']); ?>">
                     <input type="hidden" name="_email_subject" value="<?php echo esc_attr($settings['email_subject']); ?>">
                     <input type="hidden" name="_email_from_name" value="<?php echo esc_attr($settings['email_from_name']); ?>">
+                    <input type="hidden" name="_email_custom_message" value="<?php echo esc_attr($settings['email_custom_message']); ?>">
                     <input type="hidden" name="_email_message" value="<?php echo esc_attr($settings['email_message']); ?>">
+                    <input type="hidden" name="_email_format" value="<?php echo esc_attr($settings['email_format']); ?>">
                 <?php endif; ?>
             </form>
         </div>

@@ -40,7 +40,9 @@ jQuery(document).ready(function($) {
                 _email_to: form.find('input[name="_email_to"]').val(),
                 _email_subject: form.find('input[name="_email_subject"]').val(),
                 _email_from_name: form.find('input[name="_email_from_name"]').val(),
-                _email_message: form.find('input[name="_email_message"]').val()
+                _email_custom_message: form.find('input[name="_email_custom_message"]').val(),
+                _email_message: form.find('input[name="_email_message"]').val(),
+                _email_format: form.find('input[name="_email_format"]').val()
             },
             success: function(response) {
                 if (response.success) {
