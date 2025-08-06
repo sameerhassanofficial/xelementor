@@ -134,12 +134,87 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             ]
         );
 
+
+
         $repeater->add_control(
-            'slide_link',
+            'show_overlay_content',
             [
-                'label' => esc_html__('Link', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::URL,
-                'placeholder' => esc_html__('https://your-link.com', 'textdomain'),
+                'label' => esc_html__('Show Overlay Content', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
+                'condition' => [
+                    'slide_type' => 'image',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'overlay_alignment',
+            [
+                'label' => esc_html__('Content Alignment', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'options' => [
+                    'left' => [
+                        'title' => esc_html__('Left', 'textdomain'),
+                        'icon' => 'eicon-text-align-left',
+                    ],
+                    'center' => [
+                        'title' => esc_html__('Center', 'textdomain'),
+                        'icon' => 'eicon-text-align-center',
+                    ],
+                    'right' => [
+                        'title' => esc_html__('Right', 'textdomain'),
+                        'icon' => 'eicon-text-align-right',
+                    ],
+                ],
+                'default' => 'center',
+                'condition' => [
+                    'slide_type' => 'image',
+                    'show_overlay_content' => 'yes',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'overlay_position',
+            [
+                'label' => esc_html__('Content Position', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::CHOOSE,
+                'options' => [
+                    'top' => [
+                        'title' => esc_html__('Top', 'textdomain'),
+                        'icon' => 'eicon-v-align-top',
+                    ],
+                    'center' => [
+                        'title' => esc_html__('Center', 'textdomain'),
+                        'icon' => 'eicon-v-align-middle',
+                    ],
+                    'bottom' => [
+                        'title' => esc_html__('Bottom', 'textdomain'),
+                        'icon' => 'eicon-v-align-bottom',
+                    ],
+                ],
+                'default' => 'center',
+                'condition' => [
+                    'slide_type' => 'image',
+                    'show_overlay_content' => 'yes',
+                ],
+            ]
+        );
+
+        $repeater->add_control(
+            'overlay_background',
+            [
+                'label' => esc_html__('Overlay Background', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => 'rgba(0,0,0,0.5)',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay' => 'background-color: {{VALUE}};',
+                ],
+                'condition' => [
+                    'slide_type' => 'image',
+                    'show_overlay_content' => 'yes',
+                ],
             ]
         );
 
@@ -436,6 +511,239 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'label' => esc_html__('Show Dots', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::SWITCHER,
                 'default' => 'yes',
+            ]
+        );
+
+        $this->end_controls_section();
+
+        // Style Section - Overlay Content
+        $this->start_controls_section(
+            'style_overlay',
+            [
+                'label' => esc_html__('Overlay Content', 'textdomain'),
+                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+            ]
+        );
+
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name' => 'overlay_title_typography',
+                'label' => esc_html__('Title Typography', 'textdomain'),
+                'selector' => '{{WRAPPER}} .slide-overlay .slide-title',
+            ]
+        );
+
+        $this->add_control(
+            'overlay_title_color',
+            [
+                'label' => esc_html__('Title Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#ffffff',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-title' => 'color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name' => 'overlay_description_typography',
+                'label' => esc_html__('Description Typography', 'textdomain'),
+                'selector' => '{{WRAPPER}} .slide-overlay .slide-description',
+            ]
+        );
+
+        $this->add_control(
+            'overlay_description_color',
+            [
+                'label' => esc_html__('Description Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#ffffff',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-description' => 'color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'overlay_padding',
+            [
+                'label' => esc_html__('Content Padding', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em', '%'],
+                'default' => [
+                    'top' => '20',
+                    'right' => '20',
+                    'bottom' => '20',
+                    'left' => '20',
+                    'unit' => 'px',
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'overlay_spacing',
+            [
+                'label' => esc_html__('Content Spacing', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px', 'em'],
+                'range' => [
+                    'px' => [
+                        'min' => 0,
+                        'max' => 50,
+                    ],
+                    'em' => [
+                        'min' => 0,
+                        'max' => 5,
+                    ],
+                ],
+                'default' => [
+                    'size' => 15,
+                    'unit' => 'px',
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-title' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+                    '{{WRAPPER}} .slide-overlay .slide-description' => 'margin-bottom: {{SIZE}}{{UNIT}};',
+                ],
+            ]
+        );
+
+        $this->end_controls_section();
+
+        // Style Section - Button
+        $this->start_controls_section(
+            'style_button',
+            [
+                'label' => esc_html__('Button', 'textdomain'),
+                'tab' => \Elementor\Controls_Manager::TAB_STYLE,
+            ]
+        );
+
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name' => 'button_typography',
+                'label' => esc_html__('Typography', 'textdomain'),
+                'selector' => '{{WRAPPER}} .slide-overlay .slide-button',
+            ]
+        );
+
+        $this->start_controls_tabs('button_style_tabs');
+
+        $this->start_controls_tab(
+            'button_normal_tab',
+            [
+                'label' => esc_html__('Normal', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'button_text_color',
+            [
+                'label' => esc_html__('Text Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#ffffff',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button' => 'color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'button_background_color',
+            [
+                'label' => esc_html__('Background Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#007cba',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button' => 'background-color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->end_controls_tab();
+
+        $this->start_controls_tab(
+            'button_hover_tab',
+            [
+                'label' => esc_html__('Hover', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'button_hover_text_color',
+            [
+                'label' => esc_html__('Text Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button:hover' => 'color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'button_hover_background_color',
+            [
+                'label' => esc_html__('Background Color', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::COLOR,
+                'default' => '#005a87',
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button:hover' => 'background-color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->add_responsive_control(
+            'button_padding',
+            [
+                'label' => esc_html__('Padding', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::DIMENSIONS,
+                'size_units' => ['px', 'em'],
+                'default' => [
+                    'top' => '12',
+                    'right' => '24',
+                    'bottom' => '12',
+                    'left' => '24',
+                    'unit' => 'px',
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'button_border_radius',
+            [
+                'label' => esc_html__('Border Radius', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px', '%'],
+                'range' => [
+                    'px' => [
+                        'min' => 0,
+                        'max' => 50,
+                    ],
+                    '%' => [
+                        'min' => 0,
+                        'max' => 50,
+                    ],
+                ],
+                'default' => [
+                    'size' => 4,
+                    'unit' => 'px',
+                ],
+                'selectors' => [
+                    '{{WRAPPER}} .slide-overlay .slide-button' => 'border-radius: {{SIZE}}{{UNIT}};',
+                ],
             ]
         );
 
@@ -777,15 +1085,33 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                     <div class="swiper-slide">
                         <div class="xcarousel-slide">
                             <?php
-                            if (!empty($slide['slide_link']['url'])) {
-                                $this->add_link_attributes('slide-link-' . $index, $slide['slide_link']);
-                                echo '<a ' . $this->get_render_attribute_string('slide-link-' . $index) . '>';
-                            }
-
                             switch ($slide['slide_type']) {
                                 case 'image':
                                     if (!empty($slide['slide_image']['url'])) {
                                         echo '<img src="' . esc_url($slide['slide_image']['url']) . '" alt="Slide Image">';
+                                        
+                                        // Show overlay content only for image slides
+                                        if ($slide['show_overlay_content'] === 'yes') {
+                                            $overlay_class = 'slide-overlay overlay-' . ($slide['overlay_alignment'] ?? 'center') . ' overlay-' . ($slide['overlay_position'] ?? 'center');
+                                            echo '<div class="' . esc_attr($overlay_class) . '">';
+                                            
+                                            if (!empty($slide['slide_title'])) {
+                                                echo '<h3 class="slide-title">' . esc_html($slide['slide_title']) . '</h3>';
+                                            }
+                                            
+                                            if (!empty($slide['slide_description'])) {
+                                                echo '<p class="slide-description">' . esc_html($slide['slide_description']) . '</p>';
+                                            }
+                                            
+                                            if (!empty($slide['slide_button_text']) && !empty($slide['slide_button_link']['url'])) {
+                                                $this->add_link_attributes('slide-button-' . $index, $slide['slide_button_link']);
+                                                echo '<a class="slide-button" ' . $this->get_render_attribute_string('slide-button-' . $index) . '>';
+                                                echo esc_html($slide['slide_button_text']);
+                                                echo '</a>';
+                                            }
+                                            
+                                            echo '</div>';
+                                        }
                                     }
                                     break;
 
@@ -800,10 +1126,6 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                                         echo '<div class="slide-custom-content">' . wp_kses_post($slide['slide_content']) . '</div>';
                                     }
                                     break;
-                            }
-
-                            if (!empty($slide['slide_link']['url'])) {
-                                echo '</a>';
                             }
                             ?>
                         </div>
@@ -965,11 +1287,7 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             height: 100%;
             object-fit: cover;
         }
-        .xcarousel-slide a {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+
         .slide-custom-content {
             padding: 20px;
             width: 100%;
@@ -977,6 +1295,86 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        
+        /* Slide Overlay Styles */
+        .xcarousel-slide {
+            position: relative;
+        }
+        
+        .slide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.5);
+            color: #ffffff;
+            z-index: 2;
+        }
+        
+        /* Overlay Alignment */
+        .slide-overlay.overlay-left {
+            align-items: flex-start;
+            text-align: left;
+        }
+        
+        .slide-overlay.overlay-center {
+            align-items: center;
+            text-align: center;
+        }
+        
+        .slide-overlay.overlay-right {
+            align-items: flex-end;
+            text-align: right;
+        }
+        
+        /* Overlay Position */
+        .slide-overlay.overlay-top {
+            justify-content: flex-start;
+        }
+        
+        .slide-overlay.overlay-center {
+            justify-content: center;
+        }
+        
+        .slide-overlay.overlay-bottom {
+            justify-content: flex-end;
+        }
+        
+        /* Overlay Content Styles */
+        .slide-overlay .slide-title {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        
+        .slide-overlay .slide-description {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+        
+        .slide-overlay .slide-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007cba;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .slide-overlay .slide-button:hover {
+            background-color: #005a87;
+            transform: translateY(-2px);
         }
         .swiper-button-next,
         .swiper-button-prev {

@@ -1147,10 +1147,10 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                         if (!empty($label)) {
                             $value = $label; // Use the exact label as the value
                             $checked = ($value === ($field['field_default_value'] ?? '')) ? 'checked' : '';
-                            echo '<label class="checkbox-radio-label">';
+                        echo '<label class="checkbox-radio-label">';
                             echo '<input type="' . esc_attr($field['field_type']) . '" name="' . esc_attr($field_name) . '" value="' . esc_attr($value) . '" ' . $required . ' ' . $checked . '>';
-                            echo '<span>' . esc_html($label) . '</span>';
-                            echo '</label>';
+                        echo '<span>' . esc_html($label) . '</span>';
+                        echo '</label>';
                         }
                     }
                 }
