@@ -5,23 +5,7 @@ jQuery(document).ready(function($) {
         $(this).siblings('.range-value-display').find('.range-value').text(value);
     });
 
-    // Repeater field functionality
-    $(document).on('click', '.add-repeater-item', function() {
-        var repeaterField = $(this).closest('.repeater-field');
-        var fieldName = repeaterField.data('field-name');
-        var itemIndex = repeaterField.find('.repeater-item').length;
-        
-        var newItem = $('<div class="repeater-item">' +
-            '<input type="text" name="' + fieldName + '[]" placeholder="Enter item ' + (itemIndex + 1) + '">' +
-            '<button type="button" class="remove-repeater-item">Remove</button>' +
-            '</div>');
-        
-        repeaterField.find('.repeater-items').append(newItem);
-    });
 
-    $(document).on('click', '.remove-repeater-item', function() {
-        $(this).closest('.repeater-item').remove();
-    });
 
 
 

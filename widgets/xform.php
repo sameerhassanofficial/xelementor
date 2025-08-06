@@ -47,19 +47,9 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
         );
 
         $this->add_control(
-            'enable_grid_layout',
-            [
-                'label' => __('Enable Grid Layout', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'default' => 'yes',
-                'description' => __('Use CSS Grid for responsive field layout', 'textdomain'),
-            ]
-        );
-
-        $this->add_control(
             'grid_columns',
             [
-                'label' => __('Grid Columns', 'textdomain'),
+                'label' => __('Columns', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::SELECT,
                 'default' => '2',
                 'options' => [
@@ -68,16 +58,13 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                     '3' => __('3 Columns', 'textdomain'),
                     '4' => __('4 Columns', 'textdomain'),
                 ],
-                'condition' => [
-                    'enable_grid_layout' => 'yes',
-                ],
             ]
         );
 
         $this->add_control(
-            'grid_gap',
+            'column_gap',
             [
-                'label' => __('Grid Gap', 'textdomain'),
+                'label' => __('Column Gap', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::SLIDER,
                 'size_units' => ['px', 'em'],
                 'range' => [
@@ -97,67 +84,35 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                     'size' => 20,
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .advanced-form-grid' => 'gap: {{SIZE}}{{UNIT}};',
-                ],
-                'condition' => [
-                    'enable_grid_layout' => 'yes',
+                    '{{WRAPPER}} .advanced-form-grid' => 'column-gap: {{SIZE}}{{UNIT}};',
                 ],
             ]
         );
 
         $this->add_control(
-            'grid_alignment',
+            'row_gap',
             [
-                'label' => __('Grid Alignment', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SELECT,
-                'default' => 'start',
-                'options' => [
-                    'start' => __('Start', 'textdomain'),
-                    'center' => __('Center', 'textdomain'),
-                    'end' => __('End', 'textdomain'),
-                    'stretch' => __('Stretch', 'textdomain'),
+                'label' => __('Row Gap', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SLIDER,
+                'size_units' => ['px', 'em'],
+                'range' => [
+                    'px' => [
+                        'min' => 0,
+                        'max' => 50,
+                        'step' => 1,
+                    ],
+                    'em' => [
+                        'min' => 0,
+                        'max' => 5,
+                        'step' => 0.1,
+                    ],
+                ],
+                'default' => [
+                    'unit' => 'px',
+                    'size' => 20,
                 ],
                 'selectors' => [
-                    '{{WRAPPER}} .advanced-form-grid' => 'align-items: {{VALUE}};',
-                ],
-                'condition' => [
-                    'enable_grid_layout' => 'yes',
-                ],
-            ]
-        );
-
-        $this->add_control(
-            'responsive_grid',
-            [
-                'label' => __('Responsive Grid', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'default' => 'yes',
-                'description' => __('Automatically adjust grid for mobile devices', 'textdomain'),
-                'condition' => [
-                    'enable_grid_layout' => 'yes',
-                ],
-            ]
-        );
-
-        $this->add_control(
-            'grid_justify_content',
-            [
-                'label' => __('Grid Justify Content', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SELECT,
-                'default' => 'start',
-                'options' => [
-                    'start' => __('Start', 'textdomain'),
-                    'center' => __('Center', 'textdomain'),
-                    'end' => __('End', 'textdomain'),
-                    'space-between' => __('Space Between', 'textdomain'),
-                    'space-around' => __('Space Around', 'textdomain'),
-                    'space-evenly' => __('Space Evenly', 'textdomain'),
-                ],
-                'selectors' => [
-                    '{{WRAPPER}} .advanced-form-grid' => 'justify-content: {{VALUE}};',
-                ],
-                'condition' => [
-                    'enable_grid_layout' => 'yes',
+                    '{{WRAPPER}} .advanced-form-grid' => 'row-gap: {{SIZE}}{{UNIT}};',
                 ],
             ]
         );
@@ -183,14 +138,12 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                     'date' => __('Date', 'textdomain'),
                     'number' => __('Number', 'textdomain'),
                     'url' => __('URL', 'textdomain'),
-                    'password' => __('Password', 'textdomain'),
                     'time' => __('Time', 'textdomain'),
                     'datetime-local' => __('Date & Time', 'textdomain'),
                     'color' => __('Color Picker', 'textdomain'),
                     'range' => __('Range Slider', 'textdomain'),
                     'hidden' => __('Hidden Field', 'textdomain'),
                     'html' => __('HTML Content', 'textdomain'),
-                    'repeater' => __('Repeater Field', 'textdomain'),
                     'acceptance' => __('Acceptance', 'textdomain'),
                 ],
             ]
@@ -205,14 +158,7 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
             ]
         );
 
-        $repeater->add_control(
-            'field_name',
-            [
-                'label' => __('Field Name', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::TEXT,
-                'default' => 'field_name',
-            ]
-        );
+
 
         $repeater->add_control(
             'field_placeholder',
@@ -327,9 +273,10 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
         $repeater->add_control(
             'field_options',
             [
-                'label' => __('Options (for select/radio/checkbox)', 'textdomain'),
+                'label' => __('Options', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::TEXTAREA,
-                'placeholder' => __('Option 1|value1\nOption 2|value2', 'textdomain'),
+                'placeholder' => __('Option 1\nOption 2\nOption 3', 'textdomain'),
+                'description' => __('Enter each option on a new line. Values will be auto-generated from labels.', 'textdomain'),
                 'condition' => [
                     'field_type' => ['select', 'radio', 'checkbox'],
                 ],
@@ -343,7 +290,7 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                 'type' => \Elementor\Controls_Manager::TEXT,
                 'placeholder' => __('Enter default value', 'textdomain'),
                 'condition' => [
-                    'field_type' => ['text', 'email', 'tel', 'textarea', 'number', 'url', 'password'],
+                    'field_type' => ['text', 'email', 'tel', 'textarea', 'number', 'url'],
                 ],
             ]
         );
@@ -491,51 +438,9 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
             ]
         );
 
-        $this->add_control(
-            'enable_multi_step',
-            [
-                'label' => __('Multi-Step Form', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'default' => 'no',
-                'description' => __('Split form into multiple steps', 'textdomain'),
-            ]
-        );
 
-        $this->add_control(
-            'steps_per_page',
-            [
-                'label' => __('Fields Per Step', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::NUMBER,
-                'default' => 3,
-                'min' => 1,
-                'max' => 10,
-                'condition' => [
-                    'enable_multi_step' => 'yes',
-                ],
-            ]
-        );
 
-        $this->add_control(
-            'show_progress_bar',
-            [
-                'label' => __('Show Progress Bar', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'default' => 'yes',
-                'condition' => [
-                    'enable_multi_step' => 'yes',
-                ],
-            ]
-        );
 
-        $this->add_control(
-            'enable_save_draft',
-            [
-                'label' => __('Enable Save Draft', 'textdomain'),
-                'type' => \Elementor\Controls_Manager::SWITCHER,
-                'default' => 'no',
-                'description' => __('Allow users to save and continue later', 'textdomain'),
-            ]
-        );
 
         $this->add_control(
             'enable_file_upload',
@@ -1124,29 +1029,28 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                     <h3 class="advanced-form-title"><?php echo esc_html($settings['form_title']); ?></h3>
                 <?php endif; ?>
 
-                <div class="advanced-form-fields <?php echo ($settings['enable_grid_layout'] === 'yes') ? 'advanced-form-grid' : ''; ?>"
-                     style="<?php echo ($settings['enable_grid_layout'] === 'yes') ? 'grid-template-columns: repeat(' . esc_attr($settings['grid_columns']) . ', 1fr);' : ''; ?>">
-                    <?php foreach ($settings['form_fields'] as $field): ?>
+                <div class="advanced-form-fields advanced-form-grid"
+                     style="grid-template-columns: repeat(<?php echo esc_attr($settings['grid_columns']); ?>, 1fr);">
+                    <?php foreach ($settings['form_fields'] as $field): 
+                        $field_name = $this->generate_field_name($field['field_label']);
+                    ?>
                         <div class="advanced-form-field" 
                              data-width="<?php echo esc_attr($field['field_width'] ?? '100'); ?>"
                              style="<?php 
-                                $grid_style = '';
-                                if ($settings['enable_grid_layout'] === 'yes') {
-                                    $grid_style = 'grid-column: span ' . $this->get_grid_span($field['field_width'] ?? '100', $settings['grid_columns']) . ';';
-                                    if (isset($field['field_break_before']) && $field['field_break_before'] === 'yes') {
-                                        $grid_style .= ' grid-column: 1 / -1;';
-                                    }
+                                $grid_style = 'grid-column: span ' . $this->get_grid_span($field['field_width'] ?? '100', $settings['grid_columns']) . ';';
+                                if (isset($field['field_break_before']) && $field['field_break_before'] === 'yes') {
+                                    $grid_style .= ' grid-column: 1 / -1;';
                                 }
                                 echo $grid_style;
                              ?>">
-                            <label for="<?php echo esc_attr($field['field_name']); ?>">
+                            <label for="<?php echo esc_attr($field_name); ?>">
                                 <?php echo esc_html($field['field_label']); ?>
                                 <?php if ($field['field_required'] === 'yes'): ?>
                                     <span class="required">*</span>
                                 <?php endif; ?>
                             </label>
                             
-                            <?php $this->render_field($field); ?>
+                            <?php $this->render_field($field, $field_name); ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -1193,26 +1097,42 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
         return max(1, min($span, $columns));
     }
 
-    private function render_field($field) {
+    private function generate_field_name($label) {
+        // Convert label to lowercase and replace spaces/special chars with underscores
+        $field_name = strtolower(trim($label));
+        $field_name = preg_replace('/[^a-z0-9\s]/', '', $field_name);
+        $field_name = preg_replace('/\s+/', '_', $field_name);
+        $field_name = trim($field_name, '_');
+        
+        // Ensure it's not empty
+        if (empty($field_name)) {
+            $field_name = 'field_' . uniqid();
+        }
+        
+        return $field_name;
+    }
+
+    private function render_field($field, $field_name) {
         $required = $field['field_required'] === 'yes' ? 'required' : '';
         $placeholder = !empty($field['field_placeholder']) ? 'placeholder="' . esc_attr($field['field_placeholder']) . '"' : '';
         $default_value = !empty($field['field_default_value']) ? 'value="' . esc_attr($field['field_default_value']) . '"' : '';
         
         switch ($field['field_type']) {
             case 'textarea':
-                echo '<textarea name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $placeholder . ' ' . $required . '>' . esc_textarea($field['field_default_value'] ?? '') . '</textarea>';
+                echo '<textarea name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $placeholder . ' ' . $required . '>' . esc_textarea($field['field_default_value'] ?? '') . '</textarea>';
                 break;
                 
             case 'select':
-                echo '<select name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $required . '>';
+                echo '<select name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $required . '>';
                 if (!empty($field['field_options'])) {
                     $options = explode("\n", $field['field_options']);
                     foreach ($options as $option) {
-                        $parts = explode('|', $option);
-                        $label = trim($parts[0]);
-                        $value = isset($parts[1]) ? trim($parts[1]) : $label;
-                        $selected = ($value === ($field['field_default_value'] ?? '')) ? 'selected' : '';
-                        echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+                        $label = trim($option);
+                        if (!empty($label)) {
+                            $value = $label; // Use the exact label as the value
+                            $selected = ($value === ($field['field_default_value'] ?? '')) ? 'selected' : '';
+                            echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+                        }
                     }
                 }
                 echo '</select>';
@@ -1223,14 +1143,15 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                 if (!empty($field['field_options'])) {
                     $options = explode("\n", $field['field_options']);
                     foreach ($options as $option) {
-                        $parts = explode('|', $option);
-                        $label = trim($parts[0]);
-                        $value = isset($parts[1]) ? trim($parts[1]) : $label;
-                        $checked = ($value === ($field['field_default_value'] ?? '')) ? 'checked' : '';
-                        echo '<label class="checkbox-radio-label">';
-                        echo '<input type="' . esc_attr($field['field_type']) . '" name="' . esc_attr($field['field_name']) . '" value="' . esc_attr($value) . '" ' . $required . ' ' . $checked . '>';
-                        echo '<span>' . esc_html($label) . '</span>';
-                        echo '</label>';
+                        $label = trim($option);
+                        if (!empty($label)) {
+                            $value = $label; // Use the exact label as the value
+                            $checked = ($value === ($field['field_default_value'] ?? '')) ? 'checked' : '';
+                            echo '<label class="checkbox-radio-label">';
+                            echo '<input type="' . esc_attr($field['field_type']) . '" name="' . esc_attr($field_name) . '" value="' . esc_attr($value) . '" ' . $required . ' ' . $checked . '>';
+                            echo '<span>' . esc_html($label) . '</span>';
+                            echo '</label>';
+                        }
                     }
                 }
                 break;
@@ -1238,7 +1159,7 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
             case 'file':
                 $multiple = isset($field['field_multiple_files']) && $field['field_multiple_files'] === 'yes' ? 'multiple' : '';
                 $accept = !empty($field['field_file_types']) ? 'accept="' . esc_attr($field['field_file_types']) . '"' : '';
-                echo '<input type="file" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $multiple . ' ' . $accept . ' ' . $required . '>';
+                echo '<input type="file" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $multiple . ' ' . $accept . ' ' . $required . '>';
                 if (!empty($field['field_file_types'])) {
                     echo '<small class="file-types-hint">Allowed types: ' . esc_html($field['field_file_types']) . '</small>';
                 }
@@ -1248,42 +1169,40 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
                 $min = isset($field['field_range_min']) ? 'min="' . esc_attr($field['field_range_min']) . '"' : 'min="0"';
                 $max = isset($field['field_range_max']) ? 'max="' . esc_attr($field['field_range_max']) . '"' : 'max="100"';
                 $step = isset($field['field_range_step']) ? 'step="' . esc_attr($field['field_range_step']) . '"' : 'step="1"';
-                echo '<input type="range" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $min . ' ' . $max . ' ' . $step . ' ' . $default_value . ' ' . $required . '>';
+                echo '<input type="range" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $min . ' ' . $max . ' ' . $step . ' ' . $default_value . ' ' . $required . '>';
                 echo '<div class="range-value-display">Value: <span class="range-value">' . esc_html($field['field_default_value'] ?? '50') . '</span></div>';
                 break;
 
             case 'color':
-                echo '<input type="color" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $default_value . ' ' . $required . '>';
+                echo '<input type="color" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $default_value . ' ' . $required . '>';
                 break;
 
             case 'date':
-                echo '<input type="date" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $default_value . ' ' . $required . '>';
+                echo '<input type="date" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $default_value . ' ' . $required . '>';
                 break;
 
             case 'time':
-                echo '<input type="time" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $default_value . ' ' . $required . '>';
+                echo '<input type="time" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $default_value . ' ' . $required . '>';
                 break;
 
             case 'datetime-local':
-                echo '<input type="datetime-local" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $default_value . ' ' . $required . '>';
+                echo '<input type="datetime-local" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $default_value . ' ' . $required . '>';
                 break;
 
             case 'number':
                 $min = isset($field['field_validation_value']) && $field['field_validation'] === 'min_length' ? 'min="' . esc_attr($field['field_validation_value']) . '"' : '';
                 $max = isset($field['field_validation_value']) && $field['field_validation'] === 'max_length' ? 'max="' . esc_attr($field['field_validation_value']) . '"' : '';
-                echo '<input type="number" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $placeholder . ' ' . $default_value . ' ' . $min . ' ' . $max . ' ' . $required . '>';
+                echo '<input type="number" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $placeholder . ' ' . $default_value . ' ' . $min . ' ' . $max . ' ' . $required . '>';
                 break;
 
             case 'url':
-                echo '<input type="url" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $placeholder . ' ' . $default_value . ' ' . $required . '>';
+                echo '<input type="url" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $placeholder . ' ' . $default_value . ' ' . $required . '>';
                 break;
 
-            case 'password':
-                echo '<input type="password" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $placeholder . ' ' . $required . '>';
-                break;
+
 
             case 'hidden':
-                echo '<input type="hidden" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $default_value . '>';
+                echo '<input type="hidden" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $default_value . '>';
                 break;
 
             case 'html':
@@ -1295,21 +1214,16 @@ class Advanced_Form_Widget extends \Elementor\Widget_Base {
             case 'acceptance':
                 $acceptance_text = !empty($field['field_acceptance_text']) ? $field['field_acceptance_text'] : 'I agree to the terms and conditions';
                 echo '<label class="acceptance-label">';
-                echo '<input type="checkbox" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $required . '>';
+                echo '<input type="checkbox" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $required . '>';
                 echo '<span>' . esc_html($acceptance_text) . '</span>';
                 echo '</label>';
                 break;
 
-            case 'repeater':
-                echo '<div class="repeater-field" data-field-name="' . esc_attr($field['field_name']) . '">';
-                echo '<div class="repeater-items"></div>';
-                echo '<button type="button" class="add-repeater-item">Add Item</button>';
-                echo '</div>';
-                break;
+
                 
             default:
                 // Handle text, email, tel and other basic input types
-                echo '<input type="' . esc_attr($field['field_type']) . '" name="' . esc_attr($field['field_name']) . '" id="' . esc_attr($field['field_name']) . '" ' . $placeholder . ' ' . $default_value . ' ' . $required . '>';
+                echo '<input type="' . esc_attr($field['field_type']) . '" name="' . esc_attr($field_name) . '" id="' . esc_attr($field_name) . '" ' . $placeholder . ' ' . $default_value . ' ' . $required . '>';
                 break;
         }
     }

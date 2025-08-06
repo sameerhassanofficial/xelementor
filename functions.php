@@ -77,6 +77,7 @@ function handle_advanced_form_submission() {
     }
 
     // Handle file uploads
+    $uploaded_files = [];
     if (!empty($_FILES)) {
         $upload_dir = wp_upload_dir();
         $form_uploads_dir = $upload_dir['basedir'] . '/xform-uploads/' . $form_id;
@@ -93,6 +94,7 @@ function handle_advanced_form_submission() {
                 
                 if (move_uploaded_file($file_data['tmp_name'], $file_path)) {
                     $processed_data[$field_name] = $file_name . ' (Uploaded)';
+                    $uploaded_files[] = $file_path; // Store file path for email attachment
                 }
             }
         }
@@ -230,14 +232,20 @@ function handle_advanced_form_submission() {
                     'X-Mailer: WordPress',
                 ];
                 
-                // Send email with timeout optimization
+                // Send email with timeout optimization and file attachments
                 $email_sent = false;
                 
                 // Set a timeout for email sending to prevent hanging
                 set_time_limit(30);
                 
                 try {
-                    $email_sent = wp_mail($email_to, $email_subject, $email_message, $headers);
+                    // If we have uploaded files, use attachment function
+                    if (!empty($uploaded_files)) {
+                        $email_sent = xform_send_email_with_attachments_direct($email_to, $email_subject, $email_message, $headers, $uploaded_files);
+                    } else {
+                        // No files to attach, use regular wp_mail
+                        $email_sent = wp_mail($email_to, $email_subject, $email_message, $headers);
+                    }
                 } catch (Exception $e) {
                     error_log('XForm Email Exception: ' . $e->getMessage());
                     $email_sent = false;
@@ -360,59 +368,18 @@ add_action('init', 'force_create_advanced_form_table'); // Also run on init
 
 
 
-function debug_form_submission() {
-    if (isset($_POST['action']) && $_POST['action'] === 'submit_advanced_form') {
-        error_log('Form submission debug: ' . print_r($_POST, true));
-        
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'advanced_form_submissions';
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
-        error_log('Table exists: ' . ($table_exists ? 'Yes' : 'No'));
+
+
+// WordPress mail with attachments using the working method
+function xform_send_email_with_attachments_direct($to, $subject, $message, $headers, $attachments) {
+    try {
+        // Send email with attachments using WordPress built-in method
+        return wp_mail($to, $subject, $message, $headers, $attachments);
+    } catch (Exception $e) {
+        error_log('XForm Email Error: ' . $e->getMessage());
+        return false;
     }
 }
-add_action('init', 'debug_form_submission');
-
-// Add email testing function
-function test_xform_email() {
-    if (isset($_GET['test_xform_email']) && current_user_can('manage_options')) {
-        $admin_email = get_option('admin_email');
-        $subject = 'Email Test - ' . get_bloginfo('name');
-        $message = "This is a test email to verify your email configuration is working properly.\n\nIf you received this email, your SMTP settings are correctly configured.";
-        $headers = [
-            'From: ' . get_bloginfo('name') . ' <' . $admin_email . '>',
-            'Content-Type: text/plain; charset=UTF-8',
-            'X-Mailer: WordPress',
-        ];
-        
-        $sent = wp_mail($admin_email, $subject, $message, $headers);
-        
-        if ($sent) {
-            echo '<div style="background: green; color: white; padding: 10px; margin: 10px;">✅ Email test successful! Check your inbox.</div>';
-        } else {
-            echo '<div style="background: red; color: white; padding: 10px; margin: 10px;">❌ Email test failed! Check your SMTP configuration.</div>';
-        }
-        
-        // Log the test
-        error_log('XForm Email Test - Sent: ' . ($sent ? 'Yes' : 'No'));
-        
-        // Show SMTP info if available
-        if (function_exists('wp_mail_smtp_info')) {
-            echo '<div style="background: blue; color: white; padding: 10px; margin: 10px;">SMTP Plugin detected</div>';
-        }
-    }
-}
-add_action('init', 'test_xform_email');
-
-
-
-
-
-
-
-
-
-
-
 
 
 ?>

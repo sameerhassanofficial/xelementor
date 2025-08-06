@@ -99,6 +99,42 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
         );
 
         $repeater->add_control(
+            'slide_title',
+            [
+                'label' => esc_html__('Title', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::TEXT,
+                'placeholder' => esc_html__('Slide Title', 'textdomain'),
+            ]
+        );
+
+        $repeater->add_control(
+            'slide_description',
+            [
+                'label' => esc_html__('Description', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::TEXTAREA,
+                'placeholder' => esc_html__('Slide description goes here', 'textdomain'),
+            ]
+        );
+
+        $repeater->add_control(
+            'slide_button_text',
+            [
+                'label' => esc_html__('Button Text', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::TEXT,
+                'placeholder' => esc_html__('Learn More', 'textdomain'),
+            ]
+        );
+
+        $repeater->add_control(
+            'slide_button_link',
+            [
+                'label' => esc_html__('Button Link', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::URL,
+                'placeholder' => esc_html__('https://your-link.com', 'textdomain'),
+            ]
+        );
+
+        $repeater->add_control(
             'slide_link',
             [
                 'label' => esc_html__('Link', 'textdomain'),
@@ -183,6 +219,8 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'min' => 1,
                 'max' => 10,
                 'default' => 1,
+                'tablet_default' => 1,
+                'mobile_default' => 1,
                 'condition' => [
                     'slider_type' => ['slide', 'coverflow'],
                 ],
@@ -251,6 +289,48 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             ]
         );
 
+        $this->add_control(
+            'effect_3d',
+            [
+                'label' => esc_html__('3D Effect', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'no',
+                'condition' => [
+                    'slider_type' => ['slide', 'coverflow'],
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'lazy_loading',
+            [
+                'label' => esc_html__('Lazy Loading', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
+                'description' => esc_html__('Load images only when needed', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'keyboard_control',
+            [
+                'label' => esc_html__('Keyboard Control', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
+                'description' => esc_html__('Allow keyboard navigation', 'textdomain'),
+            ]
+        );
+
+        $this->add_control(
+            'mousewheel_control',
+            [
+                'label' => esc_html__('Mousewheel Control', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'no',
+                'description' => esc_html__('Allow mousewheel navigation', 'textdomain'),
+            ]
+        );
+
         $this->end_controls_section();
 
         // Navigation Settings
@@ -268,6 +348,85 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'label' => esc_html__('Show Arrows', 'textdomain'),
                 'type' => \Elementor\Controls_Manager::SWITCHER,
                 'default' => 'yes',
+            ]
+        );
+
+        $this->add_control(
+            'arrow_type',
+            [
+                'label' => esc_html__('Arrow Type', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'default' => 'default',
+                'options' => [
+                    'default' => esc_html__('Default', 'textdomain'),
+                    'icon' => esc_html__('Icon', 'textdomain'),
+                    'image' => esc_html__('Custom Image', 'textdomain'),
+                ],
+                'condition' => [
+                    'show_arrows' => 'yes',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'prev_arrow_icon',
+            [
+                'label' => esc_html__('Previous Arrow Icon', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::ICONS,
+                'default' => [
+                    'value' => 'fas fa-chevron-left',
+                    'library' => 'fa-solid',
+                ],
+                'condition' => [
+                    'show_arrows' => 'yes',
+                    'arrow_type' => 'icon',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'next_arrow_icon',
+            [
+                'label' => esc_html__('Next Arrow Icon', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::ICONS,
+                'default' => [
+                    'value' => 'fas fa-chevron-right',
+                    'library' => 'fa-solid',
+                ],
+                'condition' => [
+                    'show_arrows' => 'yes',
+                    'arrow_type' => 'icon',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'prev_arrow_image',
+            [
+                'label' => esc_html__('Previous Arrow Image', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => \Elementor\Utils::get_placeholder_image_src(),
+                ],
+                'condition' => [
+                    'show_arrows' => 'yes',
+                    'arrow_type' => 'image',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'next_arrow_image',
+            [
+                'label' => esc_html__('Next Arrow Image', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::MEDIA,
+                'default' => [
+                    'url' => \Elementor\Utils::get_placeholder_image_src(),
+                ],
+                'condition' => [
+                    'show_arrows' => 'yes',
+                    'arrow_type' => 'image',
+                ],
             ]
         );
 
@@ -376,6 +535,7 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'selectors' => [
                     '{{WRAPPER}} .swiper-button-next, {{WRAPPER}} .swiper-button-prev' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
                     '{{WRAPPER}} .swiper-button-next:after, {{WRAPPER}} .swiper-button-prev:after' => 'font-size: calc({{SIZE}}{{UNIT}} / 2);',
+                    '{{WRAPPER}} .swiper-button-next.custom-arrow-icon i, {{WRAPPER}} .swiper-button-prev.custom-arrow-icon i, {{WRAPPER}} .swiper-button-next.custom-arrow-icon svg, {{WRAPPER}} .swiper-button-prev.custom-arrow-icon svg' => 'font-size: calc({{SIZE}}{{UNIT}} / 2); width: calc({{SIZE}}{{UNIT}} / 2); height: calc({{SIZE}}{{UNIT}} / 2);',
                 ],
             ]
         );
@@ -397,6 +557,8 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'default' => '#ffffff',
                 'selectors' => [
                     '{{WRAPPER}} .swiper-button-next:after, {{WRAPPER}} .swiper-button-prev:after' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .swiper-button-next.custom-arrow-icon i, {{WRAPPER}} .swiper-button-prev.custom-arrow-icon i' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .swiper-button-next.custom-arrow-icon svg, {{WRAPPER}} .swiper-button-prev.custom-arrow-icon svg' => 'fill: {{VALUE}};',
                 ],
             ]
         );
@@ -429,6 +591,8 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 'type' => \Elementor\Controls_Manager::COLOR,
                 'selectors' => [
                     '{{WRAPPER}} .swiper-button-next:hover:after, {{WRAPPER}} .swiper-button-prev:hover:after' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .swiper-button-next:hover.custom-arrow-icon i, {{WRAPPER}} .swiper-button-prev:hover.custom-arrow-icon i' => 'color: {{VALUE}};',
+                    '{{WRAPPER}} .swiper-button-next:hover.custom-arrow-icon svg, {{WRAPPER}} .swiper-button-prev:hover.custom-arrow-icon svg' => 'fill: {{VALUE}};',
                 ],
             ]
         );
@@ -652,8 +816,40 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             <?php endif; ?>
 
             <?php if ($show_arrows) : ?>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-button-next"></div>
+                <?php if ($settings['arrow_type'] === 'icon') : ?>
+                    <div class="swiper-button-prev custom-arrow-icon">
+                        <?php if (!empty($settings['prev_arrow_icon']['value'])) : ?>
+                            <?php \Elementor\Icons_Manager::render_icon($settings['prev_arrow_icon'], ['aria-hidden' => 'true']); ?>
+                        <?php else : ?>
+                            <i class="fas fa-chevron-left"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="swiper-button-next custom-arrow-icon">
+                        <?php if (!empty($settings['next_arrow_icon']['value'])) : ?>
+                            <?php \Elementor\Icons_Manager::render_icon($settings['next_arrow_icon'], ['aria-hidden' => 'true']); ?>
+                        <?php else : ?>
+                            <i class="fas fa-chevron-right"></i>
+                        <?php endif; ?>
+                    </div>
+                <?php elseif ($settings['arrow_type'] === 'image') : ?>
+                    <div class="swiper-button-prev custom-arrow-image">
+                        <?php if (!empty($settings['prev_arrow_image']['url']) && $settings['prev_arrow_image']['url'] !== \Elementor\Utils::get_placeholder_image_src()) : ?>
+                            <img src="<?php echo esc_url($settings['prev_arrow_image']['url']); ?>" alt="Previous">
+                        <?php else : ?>
+                            <i class="fas fa-chevron-left"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="swiper-button-next custom-arrow-image">
+                        <?php if (!empty($settings['next_arrow_image']['url']) && $settings['next_arrow_image']['url'] !== \Elementor\Utils::get_placeholder_image_src()) : ?>
+                            <img src="<?php echo esc_url($settings['next_arrow_image']['url']); ?>" alt="Next">
+                        <?php else : ?>
+                            <i class="fas fa-chevron-right"></i>
+                        <?php endif; ?>
+                    </div>
+                <?php else : ?>
+                    <div class="swiper-button-prev"></div>
+                    <div class="swiper-button-next"></div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 
@@ -662,9 +858,9 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             var sliderType = '<?php echo $settings["slider_type"]; ?>';
             var swiperConfig = {
                 effect: sliderType,
-                slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : $settings['slides_to_show']; ?>,
-                slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : $settings['slides_to_scroll']; ?>,
-                spaceBetween: <?php echo $settings['space_between']; ?>,
+                slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_show']) ? $settings['slides_to_show'] : 3); ?>,
+                slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_scroll']) ? $settings['slides_to_scroll'] : 1); ?>,
+                spaceBetween: <?php echo isset($settings['space_between']) ? $settings['space_between'] : 15; ?>,
                 speed: <?php echo $settings['speed']; ?>,
                 loop: <?php echo $settings['infinite_loop'] === 'yes' ? 'true' : 'false'; ?>,
                 <?php if ($settings['autoplay'] === 'yes') : ?>
@@ -686,20 +882,20 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
                 },
                 <?php endif; ?>
                 breakpoints: {
-                    640: {
-                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_show_mobile'] ?: 1); ?>,
-                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_scroll_mobile'] ?: 1); ?>,
-                        spaceBetween: <?php echo $settings['space_between_mobile'] ?: 5; ?>,
+                    320: {
+                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_show_mobile']) ? $settings['slides_to_show_mobile'] : 1); ?>,
+                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_scroll_mobile']) ? $settings['slides_to_scroll_mobile'] : 1); ?>,
+                        spaceBetween: <?php echo isset($settings['space_between_mobile']) ? $settings['space_between_mobile'] : 5; ?>,
                     },
                     768: {
-                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_show_tablet'] ?: 2); ?>,
-                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_scroll_tablet'] ?: 1); ?>,
-                        spaceBetween: <?php echo $settings['space_between_tablet'] ?: 10; ?>,
+                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_show_tablet']) ? $settings['slides_to_show_tablet'] : 2); ?>,
+                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_scroll_tablet']) ? $settings['slides_to_scroll_tablet'] : 1); ?>,
+                        spaceBetween: <?php echo isset($settings['space_between_tablet']) ? $settings['space_between_tablet'] : 10; ?>,
                     },
                     1024: {
-                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_show'] ?: 3); ?>,
-                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : ($settings['slides_to_scroll'] ?: 1); ?>,
-                        spaceBetween: <?php echo $settings['space_between'] ?: 15; ?>,
+                        slidesPerView: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_show']) ? $settings['slides_to_show'] : 3); ?>,
+                        slidesPerGroup: <?php echo in_array($settings['slider_type'], ['fade', 'cube', 'flip', 'creative']) ? 1 : (isset($settings['slides_to_scroll']) ? $settings['slides_to_scroll'] : 1); ?>,
+                        spaceBetween: <?php echo isset($settings['space_between']) ? $settings['space_between'] : 15; ?>,
                     },
                 }
             };
@@ -755,7 +951,7 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
         <style>
         .xcarousel-wrapper {
             position: relative;
-            overflow:hidden;
+            overflow: hidden;
         }
         .xcarousel-slide {
             position: relative;
@@ -787,9 +983,72 @@ class XCarousel_Widget extends \Elementor\Widget_Base {
             border-radius: 50%;
             transition: all 0.3s ease;
         }
+        
+        /* Custom Arrow Icons */
+        .swiper-button-prev.custom-arrow-icon,
+        .swiper-button-next.custom-arrow-icon {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .swiper-button-prev.custom-arrow-icon i,
+        .swiper-button-next.custom-arrow-icon i,
+        .swiper-button-prev.custom-arrow-icon svg,
+        .swiper-button-next.custom-arrow-icon svg {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            display: block !important;
+        }
+        
+        /* Override default arrow styles when using custom icons */
+        .swiper-button-prev.custom-arrow-icon:after,
+        .swiper-button-next.custom-arrow-icon:after {
+            display: none !important;
+            content: none !important;
+        }
+        
+        /* Override default arrow styles when using custom images */
+        .swiper-button-prev.custom-arrow-image:after,
+        .swiper-button-next.custom-arrow-image:after {
+            display: none !important;
+            content: none !important;
+        }
+        
+        /* Custom Arrow Images */
+        .swiper-button-prev.custom-arrow-image,
+        .swiper-button-next.custom-arrow-image {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .swiper-button-prev.custom-arrow-image img,
+        .swiper-button-next.custom-arrow-image img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block !important;
+        }
         .swiper-pagination-bullet {
             border-radius: 50%;
             transition: all 0.3s ease;
+        }
+        
+        /* Mobile responsive fixes */
+        @media (max-width: 767px) {
+            .swiper-button-next,
+            .swiper-button-prev {
+                width: 40px !important;
+                height: 40px !important;
+            }
+            .swiper-button-next:after,
+            .swiper-button-prev:after {
+                font-size: 16px !important;
+            }
         }
         </style>
         <?php

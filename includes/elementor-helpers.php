@@ -19,15 +19,17 @@ function register_custom_elementor_widgets($widgets_manager) {
         return;
     }
 
-    // Register the existing Text widget
+
+
+    // Register the XText widget
     if (file_exists(get_stylesheet_directory() . '/widgets/xtext.php')) {
         require_once get_stylesheet_directory() . '/widgets/xtext.php';
-        if (class_exists('Text_Widget')) {
-            $widgets_manager->register(new \Text_Widget());
+        if (class_exists('XText_Widget')) {
+            $widgets_manager->register(new \XText_Widget());
         }
     }
 
-    // Register the existing XCode widget
+    // Register the XCode widget
     if (file_exists(get_stylesheet_directory() . '/widgets/xcode.php')) {
         require_once get_stylesheet_directory() . '/widgets/xcode.php';
         if (class_exists('XCode_Widget')) {
@@ -35,7 +37,7 @@ function register_custom_elementor_widgets($widgets_manager) {
         }
     }
 
-    // Register the new XCarousel widget
+    // Register the XCarousel widget
     if (file_exists(get_stylesheet_directory() . '/widgets/xcarousel.php')) {
         require_once get_stylesheet_directory() . '/widgets/xcarousel.php';
         if (class_exists('XCarousel_Widget')) {
@@ -52,6 +54,8 @@ function register_custom_elementor_widgets($widgets_manager) {
     }
 }
 add_action('elementor/widgets/register', 'register_custom_elementor_widgets');
+
+
 
 // Hide Elementor Pro elements from panel
 add_action('elementor/editor/after_enqueue_styles', function() {

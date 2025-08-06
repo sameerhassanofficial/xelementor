@@ -199,16 +199,62 @@ class XCode_Widget extends \Elementor\Widget_Base {
                     'javascript' => 'JavaScript',
                     'css' => 'CSS',
                     'html' => 'HTML',
-                    'python' => 'Python',
-                    'ruby' => 'Ruby',
-                    'java' => 'Java',
-                    'go' => 'Go',
-                    'bash' => 'Bash/Shell',
+                    'json' => 'JSON',
+                    'xml' => 'XML',
                     'sql' => 'SQL',
+                    'bash' => 'Bash',
+                    'python' => 'Python',
+                    'java' => 'Java',
                     'csharp' => 'C#',
                     'cpp' => 'C++',
+                    'ruby' => 'Ruby',
+                    'go' => 'Go',
+                    'rust' => 'Rust',
+                    'swift' => 'Swift',
+                    'kotlin' => 'Kotlin',
                     'typescript' => 'TypeScript',
+                    'scss' => 'SCSS',
+                    'sass' => 'Sass',
+                    'less' => 'Less',
+                    'yaml' => 'YAML',
+                    'markdown' => 'Markdown',
                 ],
+                'condition' => [
+                    'code_type' => 'snippet',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'show_line_numbers',
+            [
+                'label' => esc_html__('Show Line Numbers', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
+                'condition' => [
+                    'code_type' => 'snippet',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'copy_button',
+            [
+                'label' => esc_html__('Show Copy Button', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
+                'condition' => [
+                    'code_type' => 'snippet',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'syntax_highlighting',
+            [
+                'label' => esc_html__('Syntax Highlighting', 'textdomain'),
+                'type' => \Elementor\Controls_Manager::SWITCHER,
+                'default' => 'yes',
                 'condition' => [
                     'code_type' => 'snippet',
                 ],

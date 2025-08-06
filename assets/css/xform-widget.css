@@ -108,51 +108,7 @@
     line-height: 1.4;
 }
 
-.repeater-field {
-    border: 2px dashed #ddd;
-    padding: 20px;
-    border-radius: 8px;
-    background-color: #fafafa;
-}
 
-.repeater-items {
-    margin-bottom: 15px;
-}
-
-.repeater-item {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    align-items: center;
-}
-
-.repeater-item input {
-    flex: 1;
-}
-
-.remove-repeater-item {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.add-repeater-item {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.add-repeater-item:hover {
-    background: #229954;
-}
 
 /* Color picker styling */
 input[type="color"] {
